@@ -1,6 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage, HumanMessage, SystemMessage, type BaseMessage } from "@langchain/core/messages";
-import { CALL_TIMEOUT_MS, getModel, type Provider } from "./llm.js";
+import { CALL_TIMEOUT_MS, LONG_CALL_TIMEOUT_MS, getModel, type Provider } from "./llm.js";
 import type { BuiltPrompt } from "./prompts.js";
 import { OUTPUT_SCHEMAS, type OutputKind } from "./schemas.js";
 
@@ -102,10 +102,11 @@ async function invokeWithRetry(
   messages: BaseMessage[],
   label: string,
   notes: string[],
+  timeoutMs: number,
 ): Promise<{ reply: AIMessage; requests: number }> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return { reply: await invokeWithTimeout(model, messages), requests: attempt };
+      return { reply: await invokeWithTimeout(model, messages, timeoutMs), requests: attempt };
     } catch (e) {
       const msg = (e as Error).message ?? String(e);
       if (/PerDay/i.test(msg)) {
@@ -119,7 +120,7 @@ async function invokeWithRetry(
       if (attempt >= CALL_ATTEMPTS || wait > MAX_RETRY_WAIT_MS) {
         throw new AppError("PROVIDER_UNAVAILABLE", `${label} call failed after ${attempt} attempt(s): ${msg}`, true);
       }
-      notes.push(timedOut ? `retried after ${CALL_TIMEOUT_MS / 1000}s timeout` : `retried after provider error (waited ${Math.round(wait / 1000)}s)`);
+      notes.push(timedOut ? `retried after ${timeoutMs / 1000}s timeout` : `retried after provider error (waited ${Math.round(wait / 1000)}s)`);
       await new Promise((r) => setTimeout(r, wait));
     }
   }
@@ -139,13 +140,14 @@ export async function callAgent<K extends OutputKind>(
   // A1–A4 (including the A4 repair patch) run in JSON mode; the reply is then parsed and validated below.
   const { model, modelId } = getModel(provider, prompt.images.length > 0, role !== "A5");
   const messages = toMessages(prompt);
+  const timeoutMs = role === "A3" ? LONG_CALL_TIMEOUT_MS : CALL_TIMEOUT_MS;
   const notes: string[] = [];
   let requests = 0;
   let lastErrors: string[] = [];
 
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) notes.push("needed 1 format correction");
-    const call = await invokeWithRetry(model, messages, `${role} (${provider})`, notes);
+    const call = await invokeWithRetry(model, messages, `${role} (${provider})`, notes, timeoutMs);
     requests += call.requests;
     const reply = call.reply;
     const raw = reply.text;

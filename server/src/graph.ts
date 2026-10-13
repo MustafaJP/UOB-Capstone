@@ -275,7 +275,45 @@ async function a3Node(s: S): Promise<Partial<S>> {
     };
   }
   const r = await runRole("A3", "A3", s, { evidence: s.evidence, a1, a2: s.a2 }, "refine extraction");
-  return { refined: withSourceLabels(r.output, a1, s.a2), requestCount: r.requests, trace: [r.trace] };
+  const refined = withDerivedChanges(withSourceLabels(r.output, a1, s.a2), a1, s.a2);
+  return { refined, requestCount: r.requests, trace: [r.trace] };
+}
+
+// Change types A3 no longer writes: they follow from from_ids and aliases (see withDerivedChanges).
+const DERIVED_CHANGES = new Set(["merged", "linked", "actor_merged", "relabelled"]);
+
+/**
+ * Record merges, links and actor aliases in code instead of asking A3 to write them out, which
+ * cost output time on every run. A claim built from several upstream items is a merge, or a link
+ * when it joins A1 text with A2 diagram items.
+ */
+function withDerivedChanges(r: A3Refined, a1: A1Output | null, a2: A2Output | null): A3Refined {
+  const fromDiagram = new Set([...(a2?.shapes ?? []), ...(a2?.continuations ?? [])].map((x) => x.id));
+  const claimChanges: A3Refined["changes"] = r.claims
+    .filter((c) => c.from_ids.length > 1)
+    .map((c) => {
+      const linked = c.from_ids.some((id) => fromDiagram.has(id)) && c.from_ids.some((id) => !fromDiagram.has(id));
+      return {
+        type: linked ? "linked" : "merged",
+        upstream_ids: c.from_ids,
+        result_id: c.id,
+        reason: linked ? "text step matched to diagram shape" : `same step in ${c.from_ids.length} extraction passes`,
+      };
+    });
+  const upstreamActors = [...(a1?.actors ?? []), ...(a2?.lanes ?? [])];
+  const actorChanges: A3Refined["changes"] = r.actors
+    .filter((a) => a.aliases.length)
+    .map((a) => {
+      const names = new Set([a.name, ...a.aliases].map((n) => n.trim().toLowerCase()));
+      return {
+        type: "actor_merged",
+        upstream_ids: upstreamActors.filter((u) => names.has(u.name.trim().toLowerCase())).map((u) => u.id),
+        result_id: a.id,
+        reason: `aliases: ${a.aliases.join(", ")}`,
+      };
+    });
+  const modelChanges = r.changes.filter((c) => !DERIVED_CHANGES.has(c.type));
+  return { ...r, changes: [...actorChanges, ...claimChanges, ...modelChanges] };
 }
 
 /**

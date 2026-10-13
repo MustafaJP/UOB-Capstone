@@ -124,7 +124,7 @@ export const A3Output = z.object({
         reason: z.string(),
       }),
     ),
-  ),
+  ).describe('refine: only "flagged" and "dropped"; merges, links and aliases are recorded in code'),
   issues: optList(z.array(Issue)),
 });
 export type A3Output = z.infer<typeof A3Output>;

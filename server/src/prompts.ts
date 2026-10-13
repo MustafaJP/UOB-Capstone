@@ -54,12 +54,16 @@ appears in more than one pass: merge those into one claim. When one pass made it
 with outcomes and another a plain action, keep it a decision and keep every outcome relation.
 Keep the most specific owner, and keep every actor any pass found.
 1. Normalize actors: merge aliases (e.g. "Ops" and "Operations") only when the evidence
-   supports it; list the merged names in aliases and record an "actor_merged" change.
+   supports it; list the merged names in aliases.
 2. Cross-link: when an A1 claim and an A2 shape describe the same step, output ONE claim
-   whose from_ids lists both and whose evidence_refs cite both; record a "linked" change.
-3. Deduplicate: merge claims that state the same source fact; record a "merged" change.
+   whose from_ids lists both and whose evidence_refs cite both.
+3. Deduplicate: merge claims that state the same source fact into one claim whose from_ids
+   lists them all.
 4. Tighten labels into short verb-object wording (the original wording is kept automatically
-   from from_ids); record a "relabelled" change when wording changed meaningfully.
+   from from_ids).
+Merges, links and actor aliases are recorded in code from from_ids and aliases: do NOT write
+"merged", "linked", "actor_merged" or "relabelled" changes. Use changes only for "flagged"
+and "dropped".
 5. Convert A2 connectors into relations. Keep A2 continuations as claims of kind "continuation".
 6. When order is implied but not stated, you may add a relation with origin "inferred"
    plus an INFERRED_RELATION issue; record a "flagged" change.
