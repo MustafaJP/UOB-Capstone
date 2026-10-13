@@ -1,15 +1,37 @@
 "use client";
 
-import { CheckIcon, XIcon } from "lucide-react";
+import dynamic from "next/dynamic";
+import { TriangleAlertIcon } from "lucide-react";
 import { IssuesTable } from "@/components/issues-table";
+import { PILL } from "@/components/status-badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { stepOwner, type A4Graph, type JobView, type RefineChange } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import { stepOwner, type A4Graph, type Issue, type JobView, type RefineChange } from "@/lib/types";
+
+const BpmnModeler = dynamic(() => import("@/components/bpmn-modeler"), {
+  ssr: false,
+  loading: () => <div className="h-[640px] animate-pulse rounded-lg border bg-muted/40" />,
+});
+
+export type ResultTab = "diagram" | "issues" | "graph" | "changes" | "evidence" | "trace";
 
 const Empty = ({ children }: { children: React.ReactNode }) => (
-  <p className="py-8 text-center text-sm text-muted-foreground">{children}</p>
+  <p className="py-10 text-center text-sm text-ink-3">{children}</p>
 );
+
+/** Tab count chip, as in the mockup ("Trace 7"). */
+const Count = ({ n, tone = "grey" }: { n: number; tone?: "grey" | "red" }) => (
+  <span className={cn("rounded-full px-[7px] text-[11px]", tone === "red" ? PILL.red : PILL.grey)}>{n}</span>
+);
+
+// Panels sit in a card joined to the tab strip (square top corners, no top border).
+const PANEL = "overflow-x-auto rounded-b-[14px] border border-t-0 border-line bg-white p-4 shadow-card sm:p-[18px]";
+
+const TRIGGER =
+  "h-auto flex-none rounded-none border-0 border-b-2 border-transparent px-3.5 py-2.5 text-sm font-semibold text-ink-3 -mb-px after:hidden hover:text-ink data-active:border-brand data-active:text-brand data-active:shadow-none";
 
 const NODE_TYPE: Record<A4Graph["nodes"][number]["type"], string> = {
   start: "Start",
@@ -22,15 +44,15 @@ function GraphView({ graph }: { graph: A4Graph }) {
   const label = new Map(graph.nodes.map((n) => [n.id, n.label]));
   return (
     <div className="flex flex-col gap-6">
-      <h3 className="font-medium">{graph.title}</h3>
+      <h3 className="text-base font-bold text-navy">{graph.title}</h3>
       <div className="grid gap-4 md:grid-cols-2">
         {graph.lanes.map((lane) => {
           const nodes = graph.nodes.filter((n) => n.lane_id === lane.id);
           return (
-            <div key={lane.id} className="rounded-lg border">
-              <div className="flex items-center justify-between border-b bg-muted/40 px-3 py-2">
-                <span className="text-sm font-medium">{lane.name}</span>
-                <span className="font-mono text-xs text-muted-foreground">{lane.id}</span>
+            <div key={lane.id} className="overflow-hidden rounded-xl border border-line">
+              <div className="flex items-center justify-between bg-navy px-3 py-2 text-white">
+                <span className="text-sm font-semibold">{lane.name}</span>
+                <span className="font-mono text-xs text-white/60">{lane.id}</span>
               </div>
               <ul className="divide-y">
                 {nodes.map((n) => (
@@ -39,7 +61,7 @@ function GraphView({ graph }: { graph: A4Graph }) {
                       {NODE_TYPE[n.type]}
                     </Badge>
                     <span className="flex-1">{n.label}</span>
-                    {n.origin === "inferred" && <Badge variant="secondary">inferred</Badge>}
+                    {n.origin === "inferred" && <Badge className={PILL.amber}>inferred</Badge>}
                     <span className="font-mono text-xs text-muted-foreground">{n.id}</span>
                   </li>
                 ))}
@@ -106,42 +128,79 @@ function ChangesTable({ changes }: { changes: RefineChange[] }) {
   );
 }
 
-export function ResultTabs({ job }: { job: JobView }) {
+export function ResultTabs({
+  job,
+  tab,
+  onTabChange,
+}: {
+  job: JobView;
+  tab: ResultTab;
+  onTabChange: (tab: ResultTab) => void;
+}) {
   const result = job.result;
   const notReady = <Empty>Available when the job is done.</Empty>;
   const blocking = result?.issues.filter((i) => i.severity === "blocking").length ?? 0;
 
   return (
-    // Remount when the result arrives so the Issues tab opens by default. The diagram has its own page.
-    <Tabs key={result ? "done" : "pending"} defaultValue={result ? "issues" : "trace"}>
-      <TabsList className="flex-wrap">
-        <TabsTrigger value="issues">
-          Issues
-          {result && result.issues.length > 0 && (
-            <Badge variant={blocking ? "destructive" : "secondary"} className="h-4 px-1.5">
-              {result.issues.length}
-            </Badge>
-          )}
+    <Tabs value={tab} onValueChange={(v) => onTabChange(v as ResultTab)} className="gap-0">
+      <TabsList
+        variant="line"
+        className="h-auto! w-full justify-start gap-0.5 overflow-x-auto overflow-y-hidden rounded-none border-b border-line p-0"
+      >
+        <TabsTrigger value="diagram" className={TRIGGER}>
+          Diagram
         </TabsTrigger>
-        <TabsTrigger value="graph">Graph</TabsTrigger>
-        <TabsTrigger value="changes">Refiner changes</TabsTrigger>
-        <TabsTrigger value="evidence">Evidence</TabsTrigger>
-        <TabsTrigger value="trace">Trace</TabsTrigger>
+        <TabsTrigger value="issues" className={TRIGGER}>
+          Issues
+          {result && result.issues.length > 0 && <Count n={result.issues.length} tone={blocking ? "red" : "grey"} />}
+        </TabsTrigger>
+        <TabsTrigger value="graph" className={TRIGGER}>
+          Graph
+        </TabsTrigger>
+        <TabsTrigger value="changes" className={TRIGGER}>
+          Refiner changes
+        </TabsTrigger>
+        <TabsTrigger value="evidence" className={TRIGGER}>
+          Evidence
+          {job.evidence.length > 0 && <Count n={job.evidence.length} />}
+        </TabsTrigger>
+        <TabsTrigger value="trace" className={TRIGGER}>
+          Trace
+          {job.trace.length > 0 && <Count n={job.trace.length} />}
+        </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="issues" className="pt-3">
+      {/* keepMounted so switching tabs does not throw away edits in the modeler. */}
+      <TabsContent value="diagram" className={PANEL} keepMounted>
+        {!result ? (
+          notReady
+        ) : result.bpmnXml ? (
+          <>
+            {result.draft && <DraftBanner issues={draftErrors} />}
+            <BpmnModeler
+              xml={result.bpmnXml}
+              filename={`process-${job.id.slice(0, 8)}${result.draft ? "-draft" : ""}`}
+              errorIds={draftErrors.flatMap((i) => i.element_ids)}
+            />
+          </>
+        ) : (
+          <Empty>No BPMN was compiled: the graph has structural errors. See the Issues tab.</Empty>
+        )}
+      </TabsContent>
+
+      <TabsContent value="issues" className={PANEL}>
         {result ? <IssuesTable issues={result.issues} /> : notReady}
       </TabsContent>
 
-      <TabsContent value="graph" className="pt-3">
+      <TabsContent value="graph" className={PANEL}>
         {result?.graph ? <GraphView graph={result.graph} /> : result ? <Empty>No graph was produced.</Empty> : notReady}
       </TabsContent>
 
-      <TabsContent value="changes" className="pt-3">
+      <TabsContent value="changes" className={PANEL}>
         {result ? <ChangesTable changes={result.changes} /> : notReady}
       </TabsContent>
 
-      <TabsContent value="evidence" className="pt-3">
+      <TabsContent value="evidence" className={PANEL}>
         {job.evidence.length ? (
           <Table>
             <TableHeader>
@@ -173,16 +232,16 @@ export function ResultTabs({ job }: { job: JobView }) {
         )}
       </TabsContent>
 
-      <TabsContent value="trace" className="pt-3">
+      <TabsContent value="trace" className={PANEL}>
         {job.trace.length ? (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-44">Stage</TableHead>
-                <TableHead>Action</TableHead>
+                <TableHead className="w-44">Role</TableHead>
+                <TableHead>Step</TableHead>
                 <TableHead>Provider / model</TableHead>
                 <TableHead className="w-20 text-right">Time</TableHead>
-                <TableHead className="w-12">OK</TableHead>
+                <TableHead className="w-24">Result</TableHead>
                 <TableHead>Note</TableHead>
               </TableRow>
             </TableHeader>
@@ -190,7 +249,7 @@ export function ResultTabs({ job }: { job: JobView }) {
               {job.trace.map((t, i) => (
                 <TableRow key={i}>
                   <TableCell className="text-xs">{stepOwner(t.role)}</TableCell>
-                  <TableCell>{t.step}</TableCell>
+                  <TableCell className="first-letter:uppercase">{t.step}</TableCell>
                   <TableCell className="text-xs">
                     {t.provider}
                     {t.model && <span className="text-muted-foreground"> · {t.model}</span>}
@@ -198,12 +257,12 @@ export function ResultTabs({ job }: { job: JobView }) {
                   <TableCell className="text-right text-xs tabular-nums">{(t.ms / 1000).toFixed(1)} s</TableCell>
                   <TableCell>
                     {t.ok ? (
-                      <CheckIcon className="size-4 text-emerald-600" />
+                      <Badge className={PILL.green}>✓ OK</Badge>
                     ) : (
-                      <XIcon className="size-4 text-destructive" />
+                      <Badge className={PILL.red}>Failed</Badge>
                     )}
                   </TableCell>
-                  <TableCell className="text-xs whitespace-normal text-muted-foreground">{t.note ?? ""}</TableCell>
+                  <TableCell className="text-xs whitespace-normal text-ink-2">{t.note ?? ""}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

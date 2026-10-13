@@ -33,12 +33,14 @@ export function SwitchModeDialog({
   label,
   onSwitched,
   variant = "outline",
+  icon = <ArrowLeftRightIcon />,
 }: {
   job: JobView;
   target: Mode;
   label: string;
   onSwitched: () => void;
   variant?: "outline" | "default";
+  icon?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState<Provider>(job.provider);
@@ -61,7 +63,7 @@ export function SwitchModeDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={<Button variant={variant} size="sm" />}>
-        <ArrowLeftRightIcon />
+        {icon}
         {label}
       </DialogTrigger>
       <DialogContent>

@@ -3,18 +3,11 @@
 import {
   ArrowRightIcon,
   CheckIcon,
-  FileCode2Icon,
-  FileTextIcon,
-  ImageIcon,
   Loader2Icon,
-  MergeIcon,
   MessageSquareTextIcon,
   MinusIcon,
   RepeatIcon,
-  ShieldCheckIcon,
-  TimerIcon,
   TriangleAlertIcon,
-  WorkflowIcon,
   XIcon,
 } from "lucide-react";
 import { formatStepTime, useNow } from "@/components/elapsed-time";
@@ -205,112 +198,99 @@ const ICON: Record<StepState, React.ReactNode> = {
 };
 
 const CIRCLE: Record<StepState, string> = {
-  done: "bg-primary text-primary-foreground border-primary",
-  active: "border-blue-500 text-blue-600 dark:text-blue-400",
-  waiting: "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  failed: "border-destructive bg-destructive/10 text-destructive",
-  skipped: "border-dashed text-muted-foreground",
-  blocked: "border-amber-500 bg-amber-500/15 text-amber-700 dark:text-amber-300",
-  pending: "text-muted-foreground",
+  done: "border-ok bg-ok text-white",
+  active: "border-brand bg-white text-brand shadow-[0_0_0_6px_var(--color-brand-100)]",
+  waiting: "border-warn bg-warn-50 text-warn shadow-[0_0_0_6px_var(--color-warn-50)]",
+  failed: "border-uob-red bg-uob-red text-white shadow-[0_0_0_6px_var(--color-uob-red-50)]",
+  skipped: "border-dashed border-line bg-white text-ink-3",
+  blocked: "border-warn bg-warn-50 text-warn",
+  pending: "border-line bg-white text-ink-3",
 };
 
-// Each step's idle icon, so the stepper never needs the internal agent codes.
-const STEP_ICON: Record<Step["key"], React.ReactNode> = {
-  A1: <FileTextIcon />,
-  A2: <ImageIcon />,
-  A3: <MergeIcon />,
-  A4: <WorkflowIcon />,
-  A5: <ShieldCheckIcon />,
-  BPMN: <FileCode2Icon />,
+/** The line leading into a step: green once it is done, blue while it runs or where it stopped. */
+const CONNECTOR: Record<StepState, string> = {
+  done: "bg-ok",
+  active: "bg-brand",
+  waiting: "bg-warn",
+  failed: "bg-brand",
+  skipped: "bg-line",
+  blocked: "bg-warn",
+  pending: "bg-line",
 };
 
-function StepCircle({ step, className }: { step: Step; className?: string }) {
+const CAPTION_TONE: Record<StepState, string> = {
+  done: "text-ok",
+  active: "text-brand",
+  waiting: "font-semibold text-warn",
+  failed: "font-semibold text-uob-red",
+  skipped: "text-ink-3",
+  blocked: "font-semibold text-warn",
+  pending: "text-ink-3",
+};
+
+function StepCircle({ step, index }: { step: Step; index: number }) {
   return (
     <span
       className={cn(
-        "relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border-2 bg-background [&_svg]:size-4",
+        "relative z-10 grid size-[38px] shrink-0 place-items-center rounded-full border-2 text-xs font-bold [&_svg]:size-4",
         CIRCLE[step.state],
-        className,
       )}
     >
-      {ICON[step.state] ?? STEP_ICON[step.key]}
+      {ICON[step.state] ?? (step.key === "BPMN" ? <CheckIcon /> : index + 1)}
     </span>
   );
 }
 
-const captionClass = (step: Step) =>
-  cn("text-[11px]", step.state === "active" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground");
-
-function StepItem({ step }: { step: Step }) {
+function StepItem({ step, index }: { step: Step; index: number }) {
   return (
-    <li className="relative flex flex-col items-center gap-1.5 self-start text-center">
-      <span aria-hidden className="absolute top-4 right-1/2 h-px w-full -translate-y-1/2 bg-border" />
-      <StepCircle step={step} />
-      <span className="text-xs font-medium">{step.title}</span>
-      <span className={captionClass(step)}>{step.caption}</span>
-      <StepTime step={step} />
+    <li className="relative flex flex-col items-center gap-1.5 text-center">
+      {index > 0 && (
+        <span
+          aria-hidden
+          className={cn(
+            "absolute top-[18px] right-1/2 h-0.5 w-full",
+            CONNECTOR[step.state],
+            // Three per row below lg: the fourth step starts a new row, so it has no line in.
+            index === 3 && "max-lg:hidden",
+          )}
+        />
+      )}
+      <StepCircle step={step} index={index} />
+      <b className="text-[13px] font-semibold text-ink">{step.title}</b>
+      <small className={cn("text-xs", CAPTION_TONE[step.state])}>
+        {step.caption}
+        {step.time && <span className="tabular-nums"> · {step.time}</span>}
+      </small>
       <SubStepList substeps={step.substeps} />
     </li>
   );
 }
 
 const DOT: Record<StepState, string> = {
-  done: "bg-primary",
-  active: "bg-blue-500 animate-pulse",
-  waiting: "bg-amber-500",
-  failed: "bg-destructive",
-  skipped: "border border-dashed border-muted-foreground",
-  blocked: "bg-amber-500",
-  pending: "bg-muted-foreground/30",
+  done: "bg-ok",
+  active: "bg-brand animate-pulse",
+  waiting: "bg-warn",
+  failed: "bg-uob-red",
+  skipped: "border border-dashed border-ink-3",
+  blocked: "bg-warn",
+  pending: "bg-line",
 };
 
 /** The passes inside a step, one line each: a state dot, the pass and its result. */
 function SubStepList({ substeps }: { substeps?: SubStep[] }) {
   if (!substeps?.length) return null;
   return (
-    <ul className="mt-0.5 flex flex-col gap-0.5 text-left text-[11px]">
+    <ul className="mt-0.5 flex flex-col gap-0.5 text-left text-[11px] text-ink-2">
       {substeps.map((s) => (
         <li key={s.label} className="flex items-baseline gap-1.5">
           <span aria-hidden className={cn("size-1.5 shrink-0 translate-y-[-1px] rounded-full", DOT[s.state])} />
-          <span className={cn(s.state === "pending" ? "text-muted-foreground" : s.state === "active" && "text-blue-600 dark:text-blue-400")}>
+          <span className={cn(s.state === "pending" ? "text-ink-3" : s.state === "active" && "text-brand")}>
             {s.label}
-            {s.detail && <span className="text-muted-foreground"> · {s.detail}</span>}
+            {s.detail && <span className="text-ink-3"> · {s.detail}</span>}
           </span>
         </li>
       ))}
     </ul>
-  );
-}
-
-function StepTime({ step }: { step: Step }) {
-  if (!step.time) return null;
-  return (
-    <span className="flex items-center gap-1 text-[11px] text-muted-foreground tabular-nums">
-      <TimerIcon className="size-3" />
-      {step.time}
-    </span>
-  );
-}
-
-/** Reading text and reading diagrams run side by side, so they share the first column. */
-function ReadColumn({ steps }: { steps: Step[] }) {
-  return (
-    <li className="relative z-10 flex flex-col gap-2 rounded-lg border border-dashed bg-background p-2">
-      <span className="text-[11px] font-medium text-muted-foreground uppercase">Read sources</span>
-      {steps.map((step) => (
-        <div key={step.key} className="flex items-start gap-2 text-left">
-          <StepCircle step={step} className="size-7" />
-          <div className="flex min-w-0 flex-col">
-            <span className="text-xs font-medium">{step.title}</span>
-            <span className={captionClass(step)}>
-              {step.caption}
-              {step.time && <span className="text-muted-foreground tabular-nums"> · {step.time}</span>}
-            </span>
-            <SubStepList substeps={step.substeps} />
-          </div>
-        </div>
-      ))}
-    </li>
   );
 }
 
@@ -362,10 +342,10 @@ function loopEvents(job: JobView, now: number): LoopEvent[] {
 }
 
 const TONE: Record<LoopEvent["tone"], string> = {
-  ok: "border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300",
-  warn: "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300",
-  running: "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300 animate-pulse",
-  neutral: "border-border bg-muted/50",
+  ok: "border-[#bfe3cf] bg-ok-50 text-ok",
+  warn: "border-[#f0c27a] bg-warn-50 text-warn",
+  running: "border-brand-100 bg-brand-50 text-brand animate-pulse",
+  neutral: "border-line bg-white text-ink-2",
 };
 
 function RepairLoop({ job, now }: { job: JobView; now: number }) {
@@ -392,20 +372,20 @@ function RepairLoop({ job, now }: { job: JobView; now: number }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-lg border bg-muted/20 p-3">
+    <div className="flex flex-col gap-3 rounded-xl border border-line bg-[#fafafb] p-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <RepeatIcon className="size-4 text-muted-foreground" />
+        <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+          <RepeatIcon className="size-4 text-ink-3" />
           Draw, check and fix loop
         </div>
-        <Badge variant="outline" className="tabular-nums">
+        <Badge className="bg-line-2 text-ink-2 tabular-nums">
           Fixes used {repairCount} of {maxRepairs}
         </Badge>
       </div>
       <ol className="flex flex-wrap items-center gap-1.5">
         {events.map((e, i) => (
           <li key={i} className="flex items-center gap-1.5">
-            {i > 0 && <ArrowRightIcon className="size-3.5 text-muted-foreground" />}
+            {i > 0 && <ArrowRightIcon className="size-3.5 text-ink-3" />}
             <span className={cn("rounded-md border px-2 py-1 text-xs font-medium", TONE[e.tone])}>
               {e.label}
               {e.detail && <span className="font-normal opacity-80"> · {e.detail}</span>}
@@ -414,7 +394,7 @@ function RepairLoop({ job, now }: { job: JobView; now: number }) {
           </li>
         ))}
       </ol>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-ink-3">
         {outcome ??
           `The drawn flow is checked against the source documents and for valid BPMN structure (start and end events, connected flows). Any problem that needs review sends it back to be fixed, up to ${maxRepairs} times, and only the fixed parts are checked again. The final fix is not re-checked, and info-only notes never trigger a fix.`}
       </p>
@@ -428,17 +408,16 @@ export function PipelineStepper({ job }: { job: JobView }) {
   const steps = buildSteps(job, now);
   const reading = job.status === "running" && (job.progress.next.length === 0 || job.progress.next[0] === "normalize");
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {reading && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+        <p className="flex items-center gap-2 text-sm text-ink-3">
           <Loader2Icon className="size-4 animate-spin" />
           Reading sources and building evidence…
         </p>
       )}
-      <ol className="grid grid-cols-5 gap-2">
-        <ReadColumn steps={steps.slice(0, 2)} />
-        {steps.slice(2).map((step) => (
-          <StepItem key={step.key} step={step} />
+      <ol className="grid grid-cols-3 gap-x-2 gap-y-[22px] lg:grid-cols-6">
+        {steps.map((step, i) => (
+          <StepItem key={step.key} step={step} index={i} />
         ))}
       </ol>
       <RepairLoop job={job} now={now} />
