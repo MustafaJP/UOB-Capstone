@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Agent Orchestrator",
+    "description": "Process flow agents API. Start the server with `npm run dev`, then run the requests top to bottom. Creating a job stores {{jobId}} automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "jobId", "value": "" }
+  ],
+  "event": [],
+  "item": [
+    {
+      "name": "1. Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "2a. Create job (file upload)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.jobId) { pm.collectionVariables.set('jobId', body.jobId); console.log('jobId =', body.jobId); }",
+              "pm.test('202 Accepted', () => pm.response.to.have.status(202));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/jobs",
+        "description": "In Body → form-data, click the `files` row and choose a file (e.g. fixtures/tt-intake.txt). Add more `files` rows for more files (max 10, 20 MiB each).",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "files", "type": "file", "src": [] },
+            { "key": "mode", "value": "api", "type": "text", "description": "api | chat" },
+            { "key": "provider", "value": "gemini", "type": "text", "description": "gemini | qwen" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "2b. Create job (plain text)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "if (body.jobId) { pm.collectionVariables.set('jobId', body.jobId); console.log('jobId =', body.jobId); }",
+              "pm.test('202 Accepted', () => pm.response.to.have.status(202));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/jobs",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"1. Receipt of application\\nThe Branch Officer receives the customer's TT application form and stamps the date and time of receipt.\\n\\n2. Check\\nThe Remittance Operations team checks the original TT application. If it contains alterations, Ops checks each alteration is countersigned.\\n\\n3. Hand-off\\nRemittance Operations passes the application to the payment processing queue.\",\n  \"mode\": \"api\",\n  \"provider\": \"gemini\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    },
+    {
+      "name": "3. Get job status / result",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const job = pm.response.json();",
+              "console.log('status =', job.status);",
+              "(job.trace || []).forEach(t => console.log(`${t.ok ? '✓' : '✗'} ${t.role === 'system' ? 'code' : t.role} ${t.step} ${t.ms ? (t.ms / 1000).toFixed(1) + 's' : ''} ${t.note || ''}`));",
+              "if (job.status === 'awaiting_chat') console.log('Copy pending.prompt into Copilot Chat, then use request 5.');",
+              "if (job.result) console.log(`issues: ${job.result.issues.length}`);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/jobs/{{jobId}}",
+        "description": "Send repeatedly until status is done, failed or awaiting_chat. The trace is printed in the Postman Console."
+      }
+    },
+    {
+      "name": "4. Download BPMN",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/v1/jobs/{{jobId}}/bpmn",
+        "description": "Use Send → Send and Download to save the .bpmn file, then drag it onto https://demo.bpmn.io. Returns 409 BPMN_NOT_READY until the job is done."
+      }
+    },
+    {
+      "name": "5. Resume (Copilot Chat reply)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/jobs/{{jobId}}/resume",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "description": "Only when status is awaiting_chat. Paste Copilot's JSON reply into the pre-request script's `reply` variable (no escaping needed); it is sent as the `response` string.",
+        "body": {
+          "mode": "raw",
+          "raw": "{{resumeBody}}",
+          "options": { "raw": { "language": "json" } }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Paste Copilot's reply between the backticks below.",
+              "const reply = `",
+              "{ \"paste\": \"Copilot JSON here\" }",
+              "`;",
+              "pm.variables.set('resumeBody', JSON.stringify({ response: reply.trim() }));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Switch mode (api ↔ chat)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/v1/jobs/{{jobId}}/mode",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "description": "For a failed or paused job. Finished agents are kept.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"mode\": \"chat\"\n}",
+          "options": { "raw": { "language": "json" } }
+        }
+      }
+    }
+  ]
+}

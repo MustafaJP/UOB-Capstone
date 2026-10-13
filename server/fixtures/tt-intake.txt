@@ -1,0 +1,20 @@
+SYNTHETIC DEMO FIXTURE - Telegraphic Transfer (TT) application intake.
+Written for testing only. Not a UOB procedure.
+
+1. Receipt of application
+The Branch Officer receives the customer's TT application form and supporting documents at the counter and stamps the date and time of receipt.
+
+2. Check the original instructions
+The Remittance Operations team checks the original TT application. Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.
+Do not annotate or correct the customer's instructions on the form.
+
+3. Alterations
+If the application contains any alterations, Ops checks that each alteration is countersigned by the customer using the specimen signature on record.
+If an alteration is not countersigned, the application is returned to the Branch Officer, who contacts the customer to submit a corrected application. The corrected application is checked again from step 2.
+
+4. Foreign exchange
+Where the payment currency differs from the debit account currency and the amount is above SGD 50,000 equivalent, the FX contract number booked with Treasury must be captured on the application.
+If no FX contract number is provided for such a payment, the application is placed on hold until Treasury confirms the booking.
+
+5. Hand-off
+Once the checks are complete, Remittance Operations passes the application to the payment processing queue for authorisation. (Authorisation and release are covered in a separate procedure - see page 4.)
