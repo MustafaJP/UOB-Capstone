@@ -10,8 +10,9 @@ export const PROVIDERS: Provider[] = ["gemini", "qwen"];
 // Normal calls on a 20-page SOP take 40–115s; slower ones are cut off and retried once.
 const CALL_TIMEOUT_MS = 150_000;
 // A3 (refine and claim audit) reads every A1 pass at once and rewrites the whole claim set, so it
-// runs 130–180s on the same SOP. Cutting it at 150s threw away a nearly finished call.
-const LONG_CALL_TIMEOUT_MS = 240_000;
+// runs 130–180s on the same SOP, and past 240s once the lenses and gap-fill passes feed it ~140
+// claims. A cut-off A3 call is not retried (agents.ts), so this limit is its only chance.
+const LONG_CALL_TIMEOUT_MS = 360_000;
 
 export function defaultProvider(): Provider {
   const p = (process.env.PROVIDER ?? "gemini").toLowerCase();

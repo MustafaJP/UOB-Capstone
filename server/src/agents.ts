@@ -96,6 +96,8 @@ function retryDelayMs(msg: string): number | null {
 /**
  * One model call with a hard timeout and at most one retry. A daily quota or a long rate-limit
  * wait fails at once, so the job can switch provider or mode instead of hanging.
+ * retryTimeout: false for calls that are slow because of their output size; resending the same
+ * prompt takes just as long, so it would only spend another request and another full timeout.
  */
 async function invokeWithRetry(
   model: BaseChatModel,
@@ -103,6 +105,7 @@ async function invokeWithRetry(
   label: string,
   notes: string[],
   timeoutMs: number,
+  retryTimeout = true,
 ): Promise<{ reply: AIMessage; requests: number }> {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -117,7 +120,7 @@ async function invokeWithRetry(
       const retryable = timedOut || /\b429\b|rate.?limit|quota|overloaded|unavailable|ECONN|fetch failed|\b5\d\d\b/i.test(msg);
       if (!retryable) throw new AppError("PROVIDER_ERROR", `${label} call failed: ${msg}`, false);
       const wait = timedOut ? 0 : retryDelayMs(msg) ?? 5_000;
-      if (attempt >= CALL_ATTEMPTS || wait > MAX_RETRY_WAIT_MS) {
+      if (attempt >= CALL_ATTEMPTS || wait > MAX_RETRY_WAIT_MS || (timedOut && !retryTimeout)) {
         throw new AppError("PROVIDER_UNAVAILABLE", `${label} call failed after ${attempt} attempt(s): ${msg}`, true);
       }
       notes.push(timedOut ? `retried after ${timeoutMs / 1000}s timeout` : `retried after provider error (waited ${Math.round(wait / 1000)}s)`);
@@ -140,14 +143,16 @@ export async function callAgent<K extends OutputKind>(
   // A1–A4 (including the A4 repair patch) run in JSON mode; the reply is then parsed and validated below.
   const { model, modelId } = getModel(provider, prompt.images.length > 0, role !== "A5");
   const messages = toMessages(prompt);
-  const timeoutMs = role === "A3" ? LONG_CALL_TIMEOUT_MS : CALL_TIMEOUT_MS;
+  // A3 rewrites the whole claim set, so it gets the long limit and no retry after a timeout.
+  const longCall = role === "A3";
+  const timeoutMs = longCall ? LONG_CALL_TIMEOUT_MS : CALL_TIMEOUT_MS;
   const notes: string[] = [];
   let requests = 0;
   let lastErrors: string[] = [];
 
   for (let attempt = 0; attempt < 2; attempt++) {
     if (attempt > 0) notes.push("needed 1 format correction");
-    const call = await invokeWithRetry(model, messages, `${role} (${provider})`, notes, timeoutMs);
+    const call = await invokeWithRetry(model, messages, `${role} (${provider})`, notes, timeoutMs, !longCall);
     requests += call.requests;
     const reply = call.reply;
     const raw = reply.text;
