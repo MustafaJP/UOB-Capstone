@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArchiveIcon, ArrowLeftIcon, TriangleAlertIcon } from "lucide-react";
+import { ArchiveIcon, ArrowLeftIcon, ExternalLinkIcon, TriangleAlertIcon } from "lucide-react";
 import { ChatHandoff } from "@/components/chat-handoff";
 import { ElapsedTime } from "@/components/elapsed-time";
 import { PipelineStepper } from "@/components/pipeline-stepper";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/job-skeleton";
 import { useJob } from "@/hooks/use-job";
+import { diagramHref } from "@/lib/diagram";
 
 export function JobWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -69,7 +70,14 @@ export function JobWorkspace() {
             {job.sources?.length ? ` · ${job.sources.join(", ")}` : ""}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* The diagram opens full screen in a new browser tab, so this page stays open beside it. */}
+          {job.status === "done" && job.result?.bpmnXml && (
+            <Button size="sm" nativeButton={false} render={<Link href={diagramHref(job.id)} target="_blank" />}>
+              <ExternalLinkIcon />
+              {job.result.draft ? "Open draft in BPMN" : "Open in BPMN"}
+            </Button>
+          )}
           {!job.archived && job.status === "awaiting_chat" && (
             <SwitchModeDialog job={job} target="api" label="Switch to API" onSwitched={refresh} />
           )}

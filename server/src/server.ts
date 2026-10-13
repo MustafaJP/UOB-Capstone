@@ -84,6 +84,7 @@ app.get("/v1/jobs/:id/bpmn", async (req, res) => {
   res.type("application/xml").attachment(`process-${req.params.id.slice(0, 8)}.bpmn`).send(xml);
 });
 
+
 // Error contract from FSD §10: { code, message, retryable } and never a stack trace.
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof AppError) {

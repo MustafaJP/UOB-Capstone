@@ -153,7 +153,9 @@ export async function viewFor(id: string): Promise<SavedRun> {
   const saved = await loadRun(id);
   if (!saved) throw new AppError("JOB_NOT_FOUND", `No job ${id}`);
   // The checkpoint is gone, so a saved chat handoff can no longer be answered.
-  return { ...saved, archived: true, pending: null };
+  // Runs saved while draw.io export existed still carry its XML; drop it.
+  const { drawioXml: _, ...result } = (saved.result ?? {}) as NonNullable<SavedRun["result"]> & { drawioXml?: unknown };
+  return { ...saved, result: saved.result ? result : null, archived: true, pending: null };
 }
 
 /** Run history, newest first: live jobs plus saved runs from earlier server sessions. */

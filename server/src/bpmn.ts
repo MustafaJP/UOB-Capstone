@@ -7,19 +7,19 @@ import type { A4Graph } from "./schemas.js";
 // edge its own track. Edge labels, gateway and event names and notes get explicit positions in
 // space reserved for them, so bpmn-js does not stack them on top of shapes or lines.
 
-const esc = (s: string) =>
+export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
 // BPMN IDs must be XML NCNames.
-const xid = (id: string) => {
+export const xid = (id: string) => {
   const clean = id.replace(/[^A-Za-z0-9_.-]/g, "_");
   return /^[A-Za-z_]/.test(clean) ? clean : `_${clean}`;
 };
 
 type GNode = A4Graph["nodes"][number];
 type GEdge = A4Graph["edges"][number];
-type Box = { x: number; y: number; w: number; h: number };
-type Pt = [number, number];
+export type Box = { x: number; y: number; w: number; h: number };
+export type Pt = [number, number];
 
 const SIZE = {
   task: { w: 120, h: 80 },
