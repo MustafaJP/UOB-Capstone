@@ -47,7 +47,7 @@ flowchart LR
   - A5's **re-review** checks only the previous findings and the elements the patch changed, against their evidence. Info-only findings are carried forward in code.
   - The **final** repair is not re-reviewed (no further repair could follow it). Its targeted findings appear in Issues as "not re-checked".
   - **Structure errors join the loop.** After every A5 review, code runs the blocking graph checks (start/end events, lanes, dangling flows, duplicate IDs) and adds any failures as `STRUCT_*` findings, so A4 repairs them like critic findings. If a repair fixed only structure errors, the re-review is done in code with no model call.
-  - **Drafts instead of nothing.** If blocking structure errors remain after the loop, the BPMN is still compiled as a draft (`result.draft: true`). Flows with missing ends and repeated IDs are left out and listed as `DRAFT_ELEMENTS_DROPPED`. The Diagram tab outlines the broken elements in red so the analyst can fix them in the editor and download the corrected `.bpmn`.
+  - **Drafts instead of nothing.** If blocking structure errors remain after the loop, the BPMN is still compiled as a draft (`result.draft: true`). Flows with missing ends and repeated IDs are left out and listed as `DRAFT_ELEMENTS_DROPPED`. The diagram page outlines the broken elements in red so the analyst can fix them in the editor and download the corrected `.bpmn`.
 - **Copilot Chat fallback**: the same graph pauses with LangGraph `interrupt()`, an analyst pastes the prompt into Copilot Chat and pastes the JSON back, and the graph resumes. Replies are validated before the graph moves on.
 - **Provider switch**: Gemini or Qwen, set per job.
 - **Human stays in charge**: the output is a draft with an issue list. Nothing is ever "approved" by AI.
@@ -146,8 +146,8 @@ Next.js 16 (App Router, `cacheComponents` on) with shadcn/ui (Base UI) and Tailw
 
 - **New job** (`/`): file drop built on the shadcn `attachment` component, optional pasted text, mode and provider, and a server health badge.
 - **Previous runs** (`/runs`): every saved run with its sources, status, issue counts and start time. Open one, download its BPMN or delete it.
-- **Job page** (`/jobs/[id]`): polls every 2 s while running and shows the A1–A5 stepper. It has a Copilot Chat panel (copy the prompt, paste the JSON, with inline `422` field errors) and switches between API and chat when a job fails or pauses. Tabs show Diagram, Issues, Graph, Refiner changes, Evidence and Trace.
-- **Diagram tab**: the bpmn-js Modeler. You can edit the generated diagram, then download it as `.bpmn` or SVG, or reset it to the generated version. A draft diagram shows its blocking errors above the canvas and outlines those elements in red.
+- **Job page** (`/jobs/[id]`): polls every 2 s while running and shows the A1–A5 stepper. It has a Copilot Chat panel (copy the prompt, paste the JSON, with inline `422` field errors) and switches between API and chat when a job fails or pauses. Tabs show Issues, Graph, Refiner changes, Evidence and Trace. **Open in BPMN** opens the diagram in a new browser tab.
+- **Diagram page** (`/jobs/[id]/diagram`): the diagram full screen in the bpmn-js Modeler. Edit it, then download `.bpmn` or SVG, or reset it to the generated version; the page warns before you leave with edits you have not downloaded. A draft diagram shows its blocking errors above the canvas and outlines those elements in red.
 
 | File | Purpose |
 |---|---|

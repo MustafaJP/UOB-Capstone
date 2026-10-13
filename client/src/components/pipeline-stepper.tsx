@@ -368,7 +368,7 @@ function RepairLoop({ job, now }: { job: JobView; now: number }) {
       : "The check found nothing that needs fixing.";
   }
   if (outcome && job.result?.draft) {
-    outcome = `${outcome} The diagram still has structure errors, so it was built as a draft: fix the highlighted elements in the Diagram tab.`;
+    outcome = `${outcome} The diagram still has structure errors, so it was built as a draft: open the diagram and fix the highlighted elements.`;
   }
 
   return (

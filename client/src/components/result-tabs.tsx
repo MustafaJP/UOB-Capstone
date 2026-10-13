@@ -100,30 +100,6 @@ function GraphView({ graph }: { graph: A4Graph }) {
   );
 }
 
-/** Shown above a draft diagram: what blocks it and how to fix it in the editor. */
-function DraftBanner({ issues }: { issues: Issue[] }) {
-  return (
-    <Alert variant="destructive" className="mb-3">
-      <TriangleAlertIcon />
-      <AlertTitle>Draft: {issues.length === 1 ? "1 error" : `${issues.length} errors`} to fix before this is valid BPMN</AlertTitle>
-      <AlertDescription>
-        <p>
-          The automatic fixes could not resolve these. The affected elements are outlined in red. Fix them in the
-          editor below, then use Download .bpmn to save your corrected version.
-        </p>
-        <ul className="mt-1 list-disc pl-5">
-          {issues.map((i, n) => (
-            <li key={n}>
-              {i.message}
-              {i.element_ids.length > 0 && <span className="font-mono text-xs"> ({i.element_ids.join(", ")})</span>}
-            </li>
-          ))}
-        </ul>
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 function ChangesTable({ changes }: { changes: RefineChange[] }) {
   if (!changes.length) return <Empty>The refiner made no changes.</Empty>;
   return (
@@ -164,10 +140,6 @@ export function ResultTabs({
   const result = job.result;
   const notReady = <Empty>Available when the job is done.</Empty>;
   const blocking = result?.issues.filter((i) => i.severity === "blocking").length ?? 0;
-  // Validation (V..) and draft errors are what keep a draft from being valid BPMN.
-  const draftErrors = result?.draft
-    ? result.issues.filter((i) => i.severity === "blocking" && /^(V\d\d_|DRAFT_)/.test(i.code))
-    : [];
 
   return (
     <Tabs value={tab} onValueChange={(v) => onTabChange(v as ResultTab)} className="gap-0">

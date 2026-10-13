@@ -6,6 +6,7 @@ import { DownloadIcon, ImageIcon, Maximize2Icon, RotateCcwIcon } from "lucide-re
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { download, xid } from "@/lib/diagram";
 import "bpmn-js/dist/assets/diagram-js.css";
 import "bpmn-js/dist/assets/bpmn-js.css";
 import "bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css";
@@ -13,38 +14,28 @@ import "bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css";
 type Canvas = {
   zoom: (level: "fit-viewport" | number, center?: "auto") => number;
   addMarker: (id: string, marker: string) => void;
+  resized: () => void;
 };
 type ElementRegistry = { get: (id: string) => unknown };
 
-// Same ID cleaning as the server's BPMN compiler (server/src/bpmn.ts xid).
-const xid = (id: string) => {
-  const clean = id.replace(/[^A-Za-z0-9_.-]/g, "_");
-  return /^[A-Za-z_]/.test(clean) ? clean : `_${clean}`;
-};
-
-function download(content: string, filename: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-/** Editable BPMN canvas. Load with next/dynamic({ ssr: false }); bpmn-js needs the DOM. */
+/** Editable BPMN canvas that fills its parent. Load with next/dynamic({ ssr: false }); bpmn-js needs the DOM. */
 export default function BpmnModelerView({
   xml,
   filename = "process",
   errorIds,
+  onEditedChange,
 }: {
   xml: string;
   filename?: string;
   /** Graph element IDs to outline in red (blocking errors in a draft). */
   errorIds?: string[];
+  /** Told whenever the canvas gains or loses unsaved edits. */
+  onEditedChange?: (edited: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
   const modeler = useRef<BpmnModeler | null>(null);
   const [edited, setEdited] = useState(false);
+  useEffect(() => onEditedChange?.(edited), [edited, onEditedChange]);
   // A string, so a new but equal array from the parent does not rebuild the modeler.
   const errorKey = (errorIds ?? []).join("\n");
 
@@ -73,7 +64,11 @@ export default function BpmnModelerView({
     // Import clears the undo stack, so this also resets "edited" after a reload.
     m.on("commandStack.changed", () => setEdited(m.get<{ canUndo: () => boolean }>("commandStack").canUndo()));
     void load(m, xml);
+    // The canvas fills its page, so redraw it when the window (and the canvas) changes size.
+    const observer = new ResizeObserver(() => m.get<Canvas>("canvas").resized());
+    observer.observe(container.current!);
     return () => {
+      observer.disconnect();
       modeler.current = null;
       m.destroy();
     };
@@ -90,7 +85,7 @@ export default function BpmnModelerView({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="sm" onClick={fit}>
           <Maximize2Icon />
@@ -111,7 +106,7 @@ export default function BpmnModelerView({
         {edited && <Badge variant="secondary">Edited</Badge>}
       </div>
       {/* bpmn-js draws on a light canvas, so keep it white in dark mode too. */}
-      <div ref={container} className="h-[640px] w-full overflow-hidden rounded-lg border bg-white text-black" />
+      <div ref={container} className="min-h-0 w-full flex-1 overflow-hidden rounded-lg border bg-white text-black" />
     </div>
   );
 }
