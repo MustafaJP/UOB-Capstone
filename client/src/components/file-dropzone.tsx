@@ -1,19 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FileIcon, FileTextIcon, UploadIcon, XIcon } from "lucide-react";
+import { UploadIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Attachment,
-  AttachmentAction,
-  AttachmentActions,
-  AttachmentContent,
-  AttachmentDescription,
-  AttachmentGroup,
-  AttachmentMedia,
-  AttachmentTitle,
-  AttachmentTrigger,
-} from "@/components/ui/attachment";
 import { cn } from "@/lib/utils";
 
 // Mirrors the server's multer limits (server/src/server.ts).
@@ -30,6 +19,28 @@ const formatSize = (n: number) =>
 
 const kindLabel = (f: File) =>
   isImage(f) ? "Image" : f.type === "application/pdf" || /\.pdf$/i.test(f.name) ? "PDF" : "Text";
+
+/** Small file-type tile: red for PDF, blue for images, grey for text. Shared with the run history. */
+export function FileTypeTile({ kind, preview, className }: { kind: "PDF" | "IMG" | "TXT"; preview?: string | null; className?: string }) {
+  return (
+    <div
+      className={cn(
+        "grid size-[34px] shrink-0 place-items-center overflow-hidden rounded-lg text-[10px] font-bold",
+        kind === "PDF" ? "bg-uob-red-50 text-uob-red" : kind === "IMG" ? "bg-brand-50 text-brand" : "bg-line-2 text-ink-2",
+        className,
+      )}
+    >
+      {preview ? (
+        // eslint-disable-next-line @next/next/no-img-element -- local blob preview
+        <img src={preview} alt="" className="size-full object-cover" />
+      ) : (
+        kind
+      )}
+    </div>
+  );
+}
+
+const TILE_KIND = { PDF: "PDF", Image: "IMG", Text: "TXT" } as const;
 
 export function FileDropzone({ files, onChange }: { files: File[]; onChange: (files: File[]) => void }) {
   const input = useRef<HTMLInputElement>(null);
@@ -55,9 +66,10 @@ export function FileDropzone({ files, onChange }: { files: File[]; onChange: (fi
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      <Attachment
-        state="idle"
-        className={cn("w-full justify-center py-8", over && "border-primary bg-primary/5")}
+      <button
+        type="button"
+        aria-label="Choose files"
+        onClick={() => input.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
           setOver(true);
@@ -68,18 +80,26 @@ export function FileDropzone({ files, onChange }: { files: File[]; onChange: (fi
           setOver(false);
           add(e.dataTransfer.files);
         }}
+        className={cn(
+          "flex flex-col items-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-[#afc0e3] bg-brand-50 p-[26px] text-center transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          over && "border-brand bg-brand-100",
+        )}
       >
-        <AttachmentMedia>
-          <UploadIcon />
-        </AttachmentMedia>
-        <AttachmentContent className="flex-none">
-          <AttachmentTitle>Drop SOPs, process docs or diagram photos</AttachmentTitle>
-          <AttachmentDescription>
-            or click to browse · .txt, .pdf, images · up to {MAX_FILES} files, 20 MB each
-          </AttachmentDescription>
-        </AttachmentContent>
-        <AttachmentTrigger aria-label="Choose files" onClick={() => input.current?.click()} />
-      </Attachment>
+        <span className="grid size-11 place-items-center rounded-xl bg-white text-brand shadow-card">
+          <UploadIcon className="size-[18px]" />
+        </span>
+        <b className="text-[15px] text-navy">Drop SOPs, process docs or flowchart images</b>
+        <small className="text-ink-3">
+          or <u className="text-brand">browse files</u> · up to {MAX_FILES} files, 20 MB each
+        </small>
+        <span className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+          {[".pdf", ".txt", ".png / .jpg"].map((ext) => (
+            <span key={ext} className="rounded-full bg-line-2 px-2.5 py-0.5 text-xs font-semibold text-ink-2">
+              {ext}
+            </span>
+          ))}
+        </span>
+      </button>
       <input
         ref={input}
         type="file"
@@ -93,37 +113,32 @@ export function FileDropzone({ files, onChange }: { files: File[]; onChange: (fi
       />
 
       {files.length > 0 && (
-        <AttachmentGroup className="w-full">
+        <ul className="flex flex-col gap-2">
           {files.map((f, i) => (
-            <Attachment key={`${f.name}-${f.size}`} orientation="vertical">
-              <AttachmentMedia variant={previews[i] ? "image" : "icon"}>
-                {previews[i] ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- local blob preview
-                  <img src={previews[i]!} alt="" />
-                ) : kindLabel(f) === "PDF" ? (
-                  <FileIcon />
-                ) : (
-                  <FileTextIcon />
-                )}
-              </AttachmentMedia>
-              <AttachmentContent>
-                <AttachmentTitle title={f.name}>{f.name}</AttachmentTitle>
-                <AttachmentDescription>
+            <li
+              key={`${f.name}-${f.size}`}
+              className="flex items-center gap-2.5 rounded-[10px] border border-line bg-white px-3 py-2.5"
+            >
+              <FileTypeTile kind={TILE_KIND[kindLabel(f)]} preview={previews[i]} />
+              <div className="min-w-0 flex-1">
+                <b className="block truncate text-[13px]" title={f.name}>
+                  {f.name}
+                </b>
+                <small className="text-ink-3">
                   {kindLabel(f)} · {formatSize(f.size)}
-                </AttachmentDescription>
-              </AttachmentContent>
-              <AttachmentActions>
-                <AttachmentAction
-                  aria-label={`Remove ${f.name}`}
-                  variant="secondary"
-                  onClick={() => onChange(files.filter((_, j) => j !== i))}
-                >
-                  <XIcon />
-                </AttachmentAction>
-              </AttachmentActions>
-            </Attachment>
+                </small>
+              </div>
+              <button
+                type="button"
+                aria-label={`Remove ${f.name}`}
+                onClick={() => onChange(files.filter((_, j) => j !== i))}
+                className="grid size-7 place-items-center rounded-md text-ink-3 hover:bg-line-2 hover:text-ink"
+              >
+                <XIcon className="size-[18px]" />
+              </button>
+            </li>
           ))}
-        </AttachmentGroup>
+        </ul>
       )}
     </div>
   );

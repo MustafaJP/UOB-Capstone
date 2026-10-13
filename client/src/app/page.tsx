@@ -2,21 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlayIcon } from "lucide-react";
+import { PlayIcon, ShieldIcon } from "lucide-react";
 import { toast } from "sonner";
 import { FileDropzone } from "@/components/file-dropzone";
-import { HealthBadge } from "@/components/health-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { Mode, Provider } from "@/lib/types";
 
-const MODES = [
-  { value: "api", label: "API (agents call the model)" },
-  { value: "chat", label: "Copilot Chat (paste results by hand)" },
+const MODES: { value: Mode; label: string; hint: string }[] = [
+  { value: "api", label: "API", hint: "Agents call the model" },
+  { value: "chat", label: "Copilot Chat", hint: "Copy & paste" },
 ];
 
 const PROVIDERS = [
@@ -24,6 +24,30 @@ const PROVIDERS = [
   { value: "gemini", label: "Gemini" },
   { value: "qwen", label: "Qwen" },
 ];
+
+/** Two-option segmented control (the mockup's Route picker). */
+function RouteSegment({ value, onChange }: { value: Mode; onChange: (m: Mode) => void }) {
+  return (
+    <div role="radiogroup" aria-label="Route" className="grid grid-cols-2 gap-1 rounded-[10px] bg-line-2 p-1">
+      {MODES.map((m) => (
+        <button
+          key={m.value}
+          type="button"
+          role="radio"
+          aria-checked={value === m.value}
+          onClick={() => onChange(m.value)}
+          className={cn(
+            "rounded-lg px-2.5 py-2 text-center text-[13px] font-semibold text-ink-2 transition-colors",
+            value === m.value ? "bg-white text-brand shadow-card" : "hover:text-ink",
+          )}
+        >
+          {m.label}
+          <small className="block text-[11px] font-normal text-ink-3">{m.hint}</small>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function NewJobPage() {
   const router = useRouter();
@@ -57,86 +81,84 @@ export default function NewJobPage() {
   };
 
   return (
-    <form onSubmit={submit} className="mx-auto flex max-w-3xl flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">New diagram</h1>
-          <p className="text-sm text-muted-foreground">
-            Upload process documents. Five agents extract, refine and compose them into a BPMN swimlane diagram.
-          </p>
-        </div>
-        <HealthBadge />
+    <form onSubmit={submit} className="flex flex-col">
+      <h1 className="text-[26px] font-extrabold text-navy sm:text-[30px]">New diagram</h1>
+      <p className="mt-1.5 mb-[22px] text-[15px] text-ink-2">
+        Upload process documents. Five agents extract, refine and compose them into a BPMN swimlane diagram.
+      </p>
+
+      <div className="grid gap-5 lg:grid-cols-[1.6fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>1 · Add your sources</CardTitle>
+            <CardDescription className="text-[13px]">
+              Files, pasted text, or both. Text and diagrams can be mixed in one run.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <FileDropzone files={files} onChange={setFiles} />
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="text" className="text-[13px] font-semibold">
+                Pasted text <span className="font-normal text-ink-3">(optional)</span>
+              </Label>
+              <Textarea
+                id="text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste an SOP section or a process description…"
+                className="min-h-[110px] rounded-[10px] bg-[#fcfcfd] placeholder:text-ink-3"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>2 · Run settings</CardTitle>
+            <CardDescription className="text-[13px]">You can switch route later if a step fails.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-semibold">Route</span>
+              <RouteSegment value={mode} onChange={setMode} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-[13px] font-semibold">Provider</Label>
+              <Select
+                items={PROVIDERS}
+                value={provider}
+                onValueChange={(v) => v && setProvider(v as Provider | "default")}
+                disabled={mode === "chat"}
+              >
+                <SelectTrigger className="h-10 w-full rounded-[10px] bg-[#fcfcfd]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROVIDERS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {mode === "chat" && (
+                <small className="text-xs text-ink-3">Copilot Chat runs each step in your own chat window.</small>
+              )}
+            </div>
+            <div className="flex gap-2.5 rounded-[10px] bg-warn-50 px-3 py-2.5 text-[12.5px] text-[#6e4a00]">
+              <ShieldIcon className="mt-px size-4 shrink-0" />
+              <span>Use approved or synthetic documents only. Nothing is final until a reviewer approves it.</span>
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col items-stretch justify-between gap-3 border-line bg-[#fafafb] sm:flex-row sm:items-center">
+            <small className="text-ink-3">Est. 3–6 min</small>
+            <Button type="submit" size="lg" disabled={!canSubmit}>
+              <PlayIcon className="fill-current" />
+              {submitting ? "Starting…" : "Generate diagram"}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Sources</CardTitle>
-          <CardDescription>Files, pasted text, or both.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-5">
-          <FileDropzone files={files} onChange={setFiles} />
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="text">Pasted text (optional)</Label>
-            <Textarea
-              id="text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste an SOP or process description…"
-              className="min-h-32"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Run settings</CardTitle>
-          <CardDescription>You can switch between API and Copilot Chat later if a step fails.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label>Mode</Label>
-            <Select items={MODES} value={mode} onValueChange={(v) => v && setMode(v as Mode)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {MODES.map((m) => (
-                  <SelectItem key={m.value} value={m.value}>
-                    {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>Provider</Label>
-            <Select
-              items={PROVIDERS}
-              value={provider}
-              onValueChange={(v) => v && setProvider(v as Provider | "default")}
-              disabled={mode === "chat"}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PROVIDERS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end border-t pt-4">
-          <Button type="submit" size="lg" disabled={!canSubmit}>
-            <PlayIcon />
-            {submitting ? "Starting…" : "Generate diagram"}
-          </Button>
-        </CardFooter>
-      </Card>
     </form>
   );
 }
