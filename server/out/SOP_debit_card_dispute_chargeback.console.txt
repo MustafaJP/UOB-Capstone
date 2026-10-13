@@ -1,0 +1,10 @@
+Process flow agents · mode=api · provider=gemini · input=/Users/mustafa/Downloads/SOP_debit_card_dispute_chargeback.pdf
+
+Agent trace
+  ✓ code  normalize          0.8s · 38 text blocks, 0 images, 4 table-page layout views (p1, p2, p3, p10)
+  ✓ A1    extract text       [gemini/gemini-3.8-flash] 202.8s · retried after 150s timeout
+  ✓ A3    refine extraction  [code] · skipped: text-only input, A1 claims passed through
+  ✓ code  check refine       · 0 changes, 0 issues
+
+Job failed: PROVIDER_UNAVAILABLE A4 (gemini) call failed after 2 attempt(s): [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent: [503 Service Unavailable] This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.
+Tip: completed agents are kept. Over HTTP, POST /v1/jobs/<id>/mode {"mode":"chat"} continues in Copilot Chat.

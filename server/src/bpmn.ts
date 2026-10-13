@@ -268,8 +268,24 @@ export function layoutGraph(g: A4Graph): Layout {
     if (n.type === "exclusive_gateway") grow(rowTop, row(n.id), labelHeight(n.label) + 6 - (CELL_H - h) / 2);
     if (n.type === "start" || n.type === "end") grow(gutterLabel, row(n.id), h / 2 + 4 + labelHeight(n.label) - CELL_H / 2);
   }
+  // Branches that leave by the same side share a trunk, so labels at the exit would stack on each
+  // other over a line they all use. Label those where they enter their target instead, in a zone at
+  // the right of the gap before it (past the tracks), where the line belongs to that branch alone.
+  const exitKey = (e: GEdge) => `${e.source_id}|${routes.get(e.id)!.exit}`;
+  const exitCount = new Map<string, number>();
+  for (const e of flow) exitCount.set(exitKey(e), (exitCount.get(exitKey(e)) ?? 0) + 1);
+  const atEntry = new Set<string>();
+  const entryGaps = new Set<number>();
+  const entryTargets = new Set<string>();
   for (const e of flow) {
-    if (!e.label?.trim()) continue;
+    if (!e.label?.trim() || routes.get(e.id)!.entry !== "left" || exitCount.get(exitKey(e))! < 2 || entryTargets.has(e.target_id)) continue;
+    atEntry.add(e.id);
+    entryTargets.add(e.target_id);
+    entryGaps.add(col(e.target_id) - 1);
+    grow(rowTop, row(e.target_id), labelHeight(e.label) + 4 - CELL_H / 2);
+  }
+  for (const e of flow) {
+    if (!e.label?.trim() || atEntry.has(e.id)) continue;
     const n = byId.get(e.source_id)!;
     const { w, h } = SIZE[n.type];
     const lh = labelHeight(e.label);
@@ -283,7 +299,7 @@ export function layoutGraph(g: A4Graph): Layout {
     }
   }
   const gapLabelW = (k: number) => Math.max(gapLabel.get(k) ?? 0, 24);
-  const gapW = (k: number) => gapLabelW(k) + 8 + trackCount(gap(k)) * TRACK + 16;
+  const gapW = (k: number) => gapLabelW(k) + 8 + trackCount(gap(k)) * TRACK + 16 + (entryGaps.has(k) ? LABEL_W + 8 : 0);
   const gutterLabelH = (r: number) => Math.max(gutterLabel[r], 0);
   const gutterH = (r: number) => gutterLabelH(r) + 10 + trackCount(gutter(r)) * TRACK + 14;
 
@@ -396,7 +412,9 @@ export function layoutGraph(g: A4Graph): Layout {
       const lh = labelHeight(e.label);
       edgeLabels.set(
         e.id,
-        !r || r.exit === "right"
+        atEntry.has(e.id)
+          ? { x: colX[col(e.target_id)] - 4 - LABEL_W, y: tcy - 4 - lh, w: LABEL_W, h: lh }
+          : !r || r.exit === "right"
           ? { x: s.x + s.w + exitOffset(n), y: scy - 4 - lh, w: LABEL_W, h: lh }
           : { x: scx + 6, y: s.y + s.h + 4, w: LABEL_W, h: lh },
       );

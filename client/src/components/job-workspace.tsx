@@ -26,6 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/job-skeleton";
 import { useJob } from "@/hooks/use-job";
 import { api } from "@/lib/api";
+import { diagramHref } from "@/lib/diagram";
 import type { JobView } from "@/lib/types";
 
 const PROVIDER_NAME: Record<JobView["provider"], string> = { gemini: "Gemini", qwen: "Qwen" };
@@ -69,7 +70,7 @@ export function JobWorkspace() {
   const { id } = useParams<{ id: string }>();
   const { job, error, refresh } = useJob(id);
   // The tab the user picked, remembered only for the result state it was picked in, so the
-  // Diagram tab still opens by default when the result arrives.
+  // Issues tab still opens by default when the result arrives.
   const [picked, setPicked] = useState<{ withResult: boolean; tab: ResultTab } | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
 
@@ -98,10 +99,10 @@ export function JobWorkspace() {
   }
 
   const result = job.result;
-  const tab: ResultTab = picked && picked.withResult === !!result ? picked.tab : result ? "diagram" : "trace";
+  const tab: ResultTab = picked && picked.withResult === !!result ? picked.tab : result ? "issues" : "trace";
   const setTab = (t: ResultTab) => setPicked({ withResult: !!result, tab: t });
-  const openDiagram = () => {
-    setTab("diagram");
+  const openIssues = () => {
+    setTab("issues");
     tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -219,7 +220,7 @@ export function JobWorkspace() {
             actions={
               <>
                 {result.bpmnXml && (
-                  <Button size="sm" onClick={openDiagram}>
+                  <Button size="sm" nativeButton={false} render={<Link href={diagramHref(job.id)} />}>
                     Review diagram
                   </Button>
                 )}
@@ -230,7 +231,7 @@ export function JobWorkspace() {
                   </Button>
                 )}
                 {!result.bpmnXml && (
-                  <Button size="sm" onClick={() => setTab("issues")}>
+                  <Button size="sm" onClick={openIssues}>
                     See issues
                   </Button>
                 )}

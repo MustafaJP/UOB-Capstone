@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="agent-orchestrator" exporterVersion="0.1">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:documentation>AI-generated DRAFT. Simplified responsibility view; requires human review. Not an approved procedure.</bpmn:documentation>
+    <bpmn:participant id="Participant_1" name="Telegraphic Transfer (TT) Application Intake Process" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="L_bo" name="Branch Officer">
+        <bpmn:flowNodeRef>N_start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c9</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_ro" name="Remittance Operations">
+        <bpmn:flowNodeRef>N_c2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c8</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c10</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c11</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c12</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c14</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>N_c16</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_treasury" name="Treasury">
+        <bpmn:flowNodeRef>N_c13</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="N_start" name="Start application intake">
+      <bpmn:documentation>evidence: E2; origin: inferred</bpmn:documentation>
+      <bpmn:outgoing>F_r0</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="N_c1" name="Receive and stamp TT application">
+      <bpmn:documentation>evidence: E2; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r0</bpmn:incoming>
+      <bpmn:outgoing>F_r1</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="N_c2" name="Check original TT application">
+      <bpmn:documentation>evidence: E3; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r1</bpmn:incoming>
+      <bpmn:incoming>F_r9</bpmn:incoming>
+      <bpmn:outgoing>F_r2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="N_c5" name="Check if application contains alterations">
+      <bpmn:documentation>evidence: E4; origin: inferred</bpmn:documentation>
+      <bpmn:incoming>F_r2</bpmn:incoming>
+      <bpmn:outgoing>F_r3</bpmn:outgoing>
+      <bpmn:outgoing>F_r4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="N_c6" name="Check alteration countersignatures">
+      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r3</bpmn:incoming>
+      <bpmn:outgoing>F_r5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="N_c7" name="Check if each alteration is countersigned">
+      <bpmn:documentation>evidence: E4; origin: inferred</bpmn:documentation>
+      <bpmn:incoming>F_r5</bpmn:incoming>
+      <bpmn:outgoing>F_r6</bpmn:outgoing>
+      <bpmn:outgoing>F_r7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="N_c8" name="Return application to Branch Officer">
+      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r7</bpmn:incoming>
+      <bpmn:outgoing>F_r8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="N_c9" name="Contact customer to submit corrected application">
+      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r8</bpmn:incoming>
+      <bpmn:outgoing>F_r9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="N_c10" name="Check if payment currency differs from debit account currency and amount is above SGD 50,000 equivalent">
+      <bpmn:documentation>evidence: E5; origin: inferred</bpmn:documentation>
+      <bpmn:incoming>F_r4</bpmn:incoming>
+      <bpmn:incoming>F_r6</bpmn:incoming>
+      <bpmn:outgoing>F_r10</bpmn:outgoing>
+      <bpmn:outgoing>F_r11</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="N_c11" name="Check if FX contract number is captured">
+      <bpmn:documentation>evidence: E5; origin: inferred</bpmn:documentation>
+      <bpmn:incoming>F_r10</bpmn:incoming>
+      <bpmn:outgoing>F_r12</bpmn:outgoing>
+      <bpmn:outgoing>F_r13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="N_c12" name="Place application on hold">
+      <bpmn:documentation>evidence: E5; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r13</bpmn:incoming>
+      <bpmn:outgoing>F_r14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="N_c13" name="Confirm booking">
+      <bpmn:documentation>evidence: E5; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r14</bpmn:incoming>
+      <bpmn:outgoing>F_r15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="N_c14" name="Pass application to payment processing queue">
+      <bpmn:documentation>evidence: E6; origin: source_extracted</bpmn:documentation>
+      <bpmn:incoming>F_r11</bpmn:incoming>
+      <bpmn:incoming>F_r12</bpmn:incoming>
+      <bpmn:incoming>F_r15</bpmn:incoming>
+      <bpmn:outgoing>F_r16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="N_c16" name="End application intake">
+      <bpmn:documentation>evidence: E6; origin: inferred</bpmn:documentation>
+      <bpmn:incoming>F_r16</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="F_r0" sourceRef="N_start" targetRef="N_c1" />
+    <bpmn:sequenceFlow id="F_r1" sourceRef="N_c1" targetRef="N_c2" />
+    <bpmn:sequenceFlow id="F_r2" sourceRef="N_c2" targetRef="N_c5" />
+    <bpmn:sequenceFlow id="F_r3" sourceRef="N_c5" targetRef="N_c6" name="Application contains alterations" />
+    <bpmn:sequenceFlow id="F_r4" sourceRef="N_c5" targetRef="N_c10" name="Application does not contain alterations" />
+    <bpmn:sequenceFlow id="F_r5" sourceRef="N_c6" targetRef="N_c7" />
+    <bpmn:sequenceFlow id="F_r6" sourceRef="N_c7" targetRef="N_c10" name="Each alteration is countersigned" />
+    <bpmn:sequenceFlow id="F_r7" sourceRef="N_c7" targetRef="N_c8" name="Alteration is not countersigned" />
+    <bpmn:sequenceFlow id="F_r8" sourceRef="N_c8" targetRef="N_c9" />
+    <bpmn:sequenceFlow id="F_r9" sourceRef="N_c9" targetRef="N_c2" name="Corrected application submitted" />
+    <bpmn:sequenceFlow id="F_r10" sourceRef="N_c10" targetRef="N_c11" name="Payment currency differs and amount is above SGD 50,000 equivalent" />
+    <bpmn:sequenceFlow id="F_r11" sourceRef="N_c10" targetRef="N_c14" name="Payment currency does not differ or amount is not above SGD 50,000 equivalent" />
+    <bpmn:sequenceFlow id="F_r12" sourceRef="N_c11" targetRef="N_c14" name="FX contract number is provided" />
+    <bpmn:sequenceFlow id="F_r13" sourceRef="N_c11" targetRef="N_c12" name="No FX contract number is provided" />
+    <bpmn:sequenceFlow id="F_r14" sourceRef="N_c12" targetRef="N_c13" />
+    <bpmn:sequenceFlow id="F_r15" sourceRef="N_c13" targetRef="N_c14" name="Booking confirmed" />
+    <bpmn:sequenceFlow id="F_r16" sourceRef="N_c14" targetRef="N_c16" />
+    <bpmn:textAnnotation id="A_note_demo">
+      <bpmn:text>Note: Synthetic demo fixture for testing only</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="A_note_demo_assoc" sourceRef="N_start" targetRef="A_note_demo" />
+    <bpmn:textAnnotation id="A_c3">
+      <bpmn:text>Note: Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="A_c3_assoc" sourceRef="N_c2" targetRef="A_c3" />
+    <bpmn:textAnnotation id="A_c4">
+      <bpmn:text>Note: Do not annotate or correct instructions on the form.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="A_c4_assoc" sourceRef="N_c2" targetRef="A_c4" />
+    <bpmn:textAnnotation id="A_c15">
+      <bpmn:text>Note: Authorisation and release covered in separate procedure - see page 4.</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="A_c15_assoc" sourceRef="N_c14" targetRef="A_c15" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="40" y="40" width="2559" height="1079" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_bo_di" bpmnElement="L_bo" isHorizontal="true">
+        <dc:Bounds x="70" y="40" width="2529" height="235" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_ro_di" bpmnElement="L_ro" isHorizontal="true">
+        <dc:Bounds x="70" y="275" width="2529" height="728" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="L_treasury_di" bpmnElement="L_treasury" isHorizontal="true">
+        <dc:Bounds x="70" y="1003" width="2529" height="116" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_start_di" bpmnElement="N_start">
+        <dc:Bounds x="160" y="165" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="133" y="205" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c1_di" bpmnElement="N_c1">
+        <dc:Bounds x="286" y="143" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c2_di" bpmnElement="N_c2">
+        <dc:Bounds x="466" y="644" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c5_di" bpmnElement="N_c5" isMarkerVisible="true">
+        <dc:Bounds x="669" y="659" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="649" y="593" width="90" height="60" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c6_di" bpmnElement="N_c6">
+        <dc:Bounds x="865" y="644" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c7_di" bpmnElement="N_c7" isMarkerVisible="true">
+        <dc:Bounds x="1068" y="659" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1048" y="607" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c8_di" bpmnElement="N_c8">
+        <dc:Bounds x="1276" y="899" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c9_di" bpmnElement="N_c9">
+        <dc:Bounds x="1519" y="143" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c10_di" bpmnElement="N_c10" isMarkerVisible="true">
+        <dc:Bounds x="1311" y="659" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1291" y="523" width="90" height="130" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c11_di" bpmnElement="N_c11" isMarkerVisible="true">
+        <dc:Bounds x="1554" y="659" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1534" y="607" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c12_di" bpmnElement="N_c12">
+        <dc:Bounds x="1779" y="644" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c13_di" bpmnElement="N_c13">
+        <dc:Bounds x="1959" y="1015" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c14_di" bpmnElement="N_c14">
+        <dc:Bounds x="2243" y="644" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="N_c16_di" bpmnElement="N_c16">
+        <dc:Bounds x="2453" y="666" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2426" y="706" width="90" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F_r0_di" bpmnElement="F_r0">
+        <di:waypoint x="196" y="183" />
+        <di:waypoint x="286" y="183" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r1_di" bpmnElement="F_r1">
+        <di:waypoint x="406" y="183" />
+        <di:waypoint x="444" y="183" />
+        <di:waypoint x="444" y="684" />
+        <di:waypoint x="466" y="684" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r2_di" bpmnElement="F_r2">
+        <di:waypoint x="586" y="684" />
+        <di:waypoint x="669" y="684" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r3_di" bpmnElement="F_r3">
+        <di:waypoint x="719" y="684" />
+        <di:waypoint x="865" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="743" y="634" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r4_di" bpmnElement="F_r4">
+        <di:waypoint x="694" y="709" />
+        <di:waypoint x="694" y="831" />
+        <di:waypoint x="1254" y="831" />
+        <di:waypoint x="1254" y="684" />
+        <di:waypoint x="1311" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="700" y="713" width="90" height="60" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r5_di" bpmnElement="F_r5">
+        <di:waypoint x="985" y="684" />
+        <di:waypoint x="1068" y="684" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r6_di" bpmnElement="F_r6">
+        <di:waypoint x="1118" y="684" />
+        <di:waypoint x="1311" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1142" y="634" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r7_di" bpmnElement="F_r7">
+        <di:waypoint x="1093" y="709" />
+        <di:waypoint x="1093" y="939" />
+        <di:waypoint x="1276" y="939" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1099" y="713" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r8_di" bpmnElement="F_r8">
+        <di:waypoint x="1396" y="939" />
+        <di:waypoint x="1497" y="939" />
+        <di:waypoint x="1497" y="183" />
+        <di:waypoint x="1519" y="183" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r9_di" bpmnElement="F_r9">
+        <di:waypoint x="1639" y="183" />
+        <di:waypoint x="1757" y="183" />
+        <di:waypoint x="1757" y="855" />
+        <di:waypoint x="506" y="855" />
+        <di:waypoint x="506" y="724" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1645" y="133" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r10_di" bpmnElement="F_r10">
+        <di:waypoint x="1361" y="684" />
+        <di:waypoint x="1554" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1385" y="592" width="90" height="88" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r11_di" bpmnElement="F_r11">
+        <di:waypoint x="1336" y="709" />
+        <di:waypoint x="1336" y="843" />
+        <di:waypoint x="2197" y="843" />
+        <di:waypoint x="2197" y="684" />
+        <di:waypoint x="2243" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1342" y="713" width="90" height="102" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r12_di" bpmnElement="F_r12">
+        <di:waypoint x="1579" y="709" />
+        <di:waypoint x="1579" y="867" />
+        <di:waypoint x="2209" y="867" />
+        <di:waypoint x="2209" y="684" />
+        <di:waypoint x="2243" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1585" y="713" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r13_di" bpmnElement="F_r13">
+        <di:waypoint x="1604" y="684" />
+        <di:waypoint x="1779" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1628" y="634" width="90" height="46" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r14_di" bpmnElement="F_r14">
+        <di:waypoint x="1899" y="684" />
+        <di:waypoint x="1937" y="684" />
+        <di:waypoint x="1937" y="1055" />
+        <di:waypoint x="1959" y="1055" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r15_di" bpmnElement="F_r15">
+        <di:waypoint x="2079" y="1055" />
+        <di:waypoint x="2221" y="1055" />
+        <di:waypoint x="2221" y="684" />
+        <di:waypoint x="2243" y="684" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2085" y="1019" width="90" height="32" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F_r16_di" bpmnElement="F_r16">
+        <di:waypoint x="2363" y="684" />
+        <di:waypoint x="2453" y="684" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_note_demo_di" bpmnElement="A_note_demo">
+        <dc:Bounds x="132" y="52" width="130" height="57" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="A_note_demo_assoc_di" bpmnElement="A_note_demo_assoc">
+        <di:waypoint x="132" y="81" />
+        <di:waypoint x="121" y="81" />
+        <di:waypoint x="121" y="183" />
+        <di:waypoint x="160" y="183" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_c3_di" bpmnElement="A_c3">
+        <dc:Bounds x="480" y="287" width="130" height="132" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="A_c3_assoc_di" bpmnElement="A_c3_assoc">
+        <di:waypoint x="480" y="353" />
+        <di:waypoint x="469" y="353" />
+        <di:waypoint x="469" y="644" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_c4_di" bpmnElement="A_c4">
+        <dc:Bounds x="480" y="427" width="130" height="72" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="A_c4_assoc_di" bpmnElement="A_c4_assoc">
+        <di:waypoint x="480" y="463" />
+        <di:waypoint x="473" y="463" />
+        <di:waypoint x="473" y="644" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="A_c15_di" bpmnElement="A_c15">
+        <dc:Bounds x="2257" y="287" width="130" height="87" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="A_c15_assoc_di" bpmnElement="A_c15_assoc">
+        <di:waypoint x="2257" y="331" />
+        <di:waypoint x="2246" y="331" />
+        <di:waypoint x="2246" y="644" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

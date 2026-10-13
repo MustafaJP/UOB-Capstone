@@ -1,23 +1,14 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { TriangleAlertIcon } from "lucide-react";
 import { IssuesTable } from "@/components/issues-table";
 import { PILL } from "@/components/status-badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { draftErrors } from "@/lib/diagram";
 import { cn } from "@/lib/utils";
-import { stepOwner, type A4Graph, type Issue, type JobView, type RefineChange } from "@/lib/types";
+import { stepOwner, type A4Graph, type JobView, type RefineChange } from "@/lib/types";
 
-const BpmnModeler = dynamic(() => import("@/components/bpmn-modeler"), {
-  ssr: false,
-  loading: () => <div className="h-[640px] animate-pulse rounded-lg border bg-muted/40" />,
-});
-
-export type ResultTab = "diagram" | "issues" | "graph" | "changes" | "evidence" | "trace";
+export type ResultTab = "issues" | "graph" | "changes" | "evidence" | "trace";
 
 const Empty = ({ children }: { children: React.ReactNode }) => (
   <p className="py-10 text-center text-sm text-ink-3">{children}</p>
@@ -101,30 +92,6 @@ function GraphView({ graph }: { graph: A4Graph }) {
   );
 }
 
-/** Shown above a draft diagram: what blocks it and how to fix it in the editor. */
-function DraftBanner({ issues }: { issues: Issue[] }) {
-  return (
-    <Alert variant="destructive" className="mb-3">
-      <TriangleAlertIcon />
-      <AlertTitle>Draft: {issues.length === 1 ? "1 error" : `${issues.length} errors`} to fix before this is valid BPMN</AlertTitle>
-      <AlertDescription>
-        <p>
-          The automatic fixes could not resolve these. The affected elements are outlined in red. Fix them in the
-          editor below, then use Download .bpmn to save your corrected version.
-        </p>
-        <ul className="mt-1 list-disc pl-5">
-          {issues.map((i, n) => (
-            <li key={n}>
-              {i.message}
-              {i.element_ids.length > 0 && <span className="font-mono text-xs"> ({i.element_ids.join(", ")})</span>}
-            </li>
-          ))}
-        </ul>
-      </AlertDescription>
-    </Alert>
-  );
-}
-
 function ChangesTable({ changes }: { changes: RefineChange[] }) {
   if (!changes.length) return <Empty>The refiner made no changes.</Empty>;
   return (
@@ -165,7 +132,6 @@ export function ResultTabs({
   const result = job.result;
   const notReady = <Empty>Available when the job is done.</Empty>;
   const blocking = result?.issues.filter((i) => i.severity === "blocking").length ?? 0;
-  const errors = result ? draftErrors(result) : [];
 
   return (
     <Tabs value={tab} onValueChange={(v) => onTabChange(v as ResultTab)} className="gap-0">
@@ -173,9 +139,6 @@ export function ResultTabs({
         variant="line"
         className="h-auto! w-full justify-start gap-0.5 overflow-x-auto overflow-y-hidden rounded-none border-b border-line p-0"
       >
-        <TabsTrigger value="diagram" className={TRIGGER}>
-          Diagram
-        </TabsTrigger>
         <TabsTrigger value="issues" className={TRIGGER}>
           Issues
           {result && result.issues.length > 0 && <Count n={result.issues.length} tone={blocking ? "red" : "grey"} />}
@@ -195,24 +158,6 @@ export function ResultTabs({
           {job.trace.length > 0 && <Count n={job.trace.length} />}
         </TabsTrigger>
       </TabsList>
-
-      {/* keepMounted so switching tabs does not throw away edits in the modeler. */}
-      <TabsContent value="diagram" className={PANEL} keepMounted>
-        {!result ? (
-          notReady
-        ) : result.bpmnXml ? (
-          <>
-            {result.draft && <DraftBanner issues={errors} />}
-            <BpmnModeler
-              xml={result.bpmnXml}
-              filename={`process-${job.id.slice(0, 8)}${result.draft ? "-draft" : ""}`}
-              errorIds={errors.flatMap((i) => i.element_ids)}
-            />
-          </>
-        ) : (
-          <Empty>No BPMN was compiled: the graph has structural errors. See the Issues tab.</Empty>
-        )}
-      </TabsContent>
 
       <TabsContent value="issues" className={PANEL}>
         {result ? <IssuesTable issues={result.issues} /> : notReady}

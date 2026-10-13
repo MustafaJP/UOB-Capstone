@@ -1,0 +1,2858 @@
+{
+  "id": "4c02fa43-467f-461b-8e71-65255b087685",
+  "mode": "api",
+  "provider": "gemini",
+  "status": "done",
+  "createdAt": "2026-10-09T07:20:40.925Z",
+  "updatedAt": "2026-10-09T07:23:21.989Z",
+  "pending": null,
+  "error": null,
+  "trace": [
+    {
+      "role": "system",
+      "step": "normalize",
+      "provider": "code",
+      "model": null,
+      "ms": 0,
+      "ok": true,
+      "note": "6 text blocks, 0 images"
+    },
+    {
+      "role": "A1",
+      "step": "extract text",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 33577,
+      "ok": true
+    },
+    {
+      "role": "A3",
+      "step": "refine extraction",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 36355,
+      "ok": true
+    },
+    {
+      "role": "system",
+      "step": "check refine",
+      "provider": "code",
+      "model": null,
+      "ms": 0,
+      "ok": true,
+      "note": "29 changes, 0 issues"
+    },
+    {
+      "role": "A4",
+      "step": "compose graph",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 36139,
+      "ok": true
+    },
+    {
+      "role": "A5",
+      "step": "review",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 17836,
+      "ok": true
+    },
+    {
+      "role": "A4",
+      "step": "repair graph",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 14273,
+      "ok": true
+    },
+    {
+      "role": "A5",
+      "step": "re-review",
+      "provider": "gemini",
+      "model": "gemini-3.5-flash",
+      "ms": 22759,
+      "ok": true
+    },
+    {
+      "role": "system",
+      "step": "validate",
+      "provider": "code",
+      "model": null,
+      "ms": 0,
+      "ok": true,
+      "note": "16 validation issues"
+    },
+    {
+      "role": "system",
+      "step": "compile bpmn",
+      "provider": "code",
+      "model": null,
+      "ms": 2,
+      "ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "SYNTHETIC DEMO FIXTURE - Telegraphic Transfer (TT) application intake.\nWritten for testing only. Not a UOB procedure."
+    },
+    {
+      "id": "E2",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "1. Receipt of application\nThe Branch Officer receives the customer's TT application form and supporting documents at the counter and stamps the date and time of receipt."
+    },
+    {
+      "id": "E3",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "2. Check the original instructions\nThe Remittance Operations team checks the original TT application. Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.\nDo not annotate or correct the customer's instructions on the form."
+    },
+    {
+      "id": "E4",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "3. Alterations\nIf the application contains any alterations, Ops checks that each alteration is countersigned by the customer using the specimen signature on record.\nIf an alteration is not countersigned, the application is returned to the Branch Officer, who contacts the customer to submit a correct"
+    },
+    {
+      "id": "E5",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "4. Foreign exchange\nWhere the payment currency differs from the debit account currency and the amount is above SGD 50,000 equivalent, the FX contract number booked with Treasury must be captured on the application.\nIf no FX contract number is provided for such a payment, the application is placed on"
+    },
+    {
+      "id": "E6",
+      "kind": "text",
+      "source": "tt-intake.txt",
+      "page": null,
+      "excerpt": "5. Hand-off\nOnce the checks are complete, Remittance Operations passes the application to the payment processing queue for authorisation. (Authorisation and release are covered in a separate procedure - see page 4.)"
+    }
+  ],
+  "stages": {
+    "a1": {
+      "actors": [
+        {
+          "id": "T_actor_bo",
+          "name": "Branch Officer",
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "T_actor_ro",
+          "name": "Remittance Operations",
+          "evidence_refs": [
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        },
+        {
+          "id": "T_actor_cust",
+          "name": "Customer",
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "T_actor_treasury",
+          "name": "Treasury",
+          "evidence_refs": [
+            "E5"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "T_note_demo",
+          "kind": "note",
+          "label": "SYNTHETIC DEMO FIXTURE - Telegraphic Transfer (TT) application intake. Written for testing only. Not a UOB procedure.",
+          "actor_id": null,
+          "evidence_refs": [
+            "E1"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_start",
+          "kind": "start",
+          "label": "Start of application intake",
+          "actor_id": null,
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_c1",
+          "kind": "action",
+          "label": "The Branch Officer receives the customer's TT application form and supporting documents at the counter and stamps the date and time of receipt.",
+          "actor_id": "T_actor_bo",
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c2",
+          "kind": "action",
+          "label": "The Remittance Operations team checks the original TT application.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c3",
+          "kind": "note",
+          "label": "Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c4",
+          "kind": "note",
+          "label": "Do not annotate or correct the customer's instructions on the form.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c5",
+          "kind": "decision",
+          "label": "Does the application contain any alterations?",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_c6",
+          "kind": "action",
+          "label": "Ops checks that each alteration is countersigned by the customer using the specimen signature on record.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c7",
+          "kind": "decision",
+          "label": "Is each alteration countersigned?",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_c8",
+          "kind": "action",
+          "label": "The application is returned to the Branch Officer.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c9",
+          "kind": "action",
+          "label": "Branch Officer contacts the customer to submit a corrected application.",
+          "actor_id": "T_actor_bo",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c10",
+          "kind": "decision",
+          "label": "Does the payment currency differ from the debit account currency and is the amount above SGD 50,000 equivalent?",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_c11",
+          "kind": "decision",
+          "label": "Is the FX contract number booked with Treasury captured on the application?",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_c12",
+          "kind": "action",
+          "label": "The application is placed on hold.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c13",
+          "kind": "action",
+          "label": "Treasury confirms the booking.",
+          "actor_id": "T_actor_treasury",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c14",
+          "kind": "action",
+          "label": "Remittance Operations passes the application to the payment processing queue for authorisation.",
+          "actor_id": "T_actor_ro",
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c15",
+          "kind": "note",
+          "label": "Authorisation and release are covered in a separate procedure - see page 4.",
+          "actor_id": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_c16",
+          "kind": "end",
+          "label": "End of application intake procedure",
+          "actor_id": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "relations": [
+        {
+          "id": "T_r0",
+          "from": "T_start",
+          "to": "T_c1",
+          "condition": null,
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r1",
+          "from": "T_c1",
+          "to": "T_c2",
+          "condition": null,
+          "evidence_refs": [
+            "E2",
+            "E3"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r2",
+          "from": "T_c2",
+          "to": "T_c5",
+          "condition": null,
+          "evidence_refs": [
+            "E3",
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r3",
+          "from": "T_c5",
+          "to": "T_c6",
+          "condition": "Application contains alterations",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r4",
+          "from": "T_c5",
+          "to": "T_c10",
+          "condition": "Application does not contain alterations",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r5",
+          "from": "T_c6",
+          "to": "T_c7",
+          "condition": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r6",
+          "from": "T_c7",
+          "to": "T_c10",
+          "condition": "Each alteration is countersigned",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r7",
+          "from": "T_c7",
+          "to": "T_c8",
+          "condition": "Alteration is not countersigned",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r8",
+          "from": "T_c8",
+          "to": "T_c9",
+          "condition": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r9",
+          "from": "T_c9",
+          "to": "T_c2",
+          "condition": "Corrected application submitted",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r10",
+          "from": "T_c10",
+          "to": "T_c11",
+          "condition": "Payment currency differs and amount is above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r11",
+          "from": "T_c10",
+          "to": "T_c14",
+          "condition": "Payment currency does not differ or amount is not above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r12",
+          "from": "T_c11",
+          "to": "T_c14",
+          "condition": "FX contract number is provided",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r13",
+          "from": "T_c11",
+          "to": "T_c12",
+          "condition": "No FX contract number is provided",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r14",
+          "from": "T_c12",
+          "to": "T_c13",
+          "condition": null,
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "T_r15",
+          "from": "T_c13",
+          "to": "T_c14",
+          "condition": "Booking confirmed",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "T_r16",
+          "from": "T_c14",
+          "to": "T_c16",
+          "condition": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "issues": [
+        {
+          "code": "OWNER_UNKNOWN",
+          "severity": "info",
+          "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+          "element_ids": [
+            "T_start",
+            "T_note_demo",
+            "T_c15",
+            "T_c16"
+          ],
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        },
+        {
+          "code": "SOURCE_INCOMPLETE",
+          "severity": "info",
+          "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+          "element_ids": [
+            "T_c15"
+          ],
+          "evidence_refs": [
+            "E6"
+          ]
+        },
+        {
+          "code": "INFERRED_RELATION",
+          "severity": "info",
+          "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+          "element_ids": [
+            "T_r0",
+            "T_r1",
+            "T_r2",
+            "T_r4",
+            "T_r5",
+            "T_r6",
+            "T_r11",
+            "T_r12",
+            "T_r15",
+            "T_r16"
+          ],
+          "evidence_refs": [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        }
+      ]
+    },
+    "a2": null,
+    "a3": {
+      "actors": [
+        {
+          "id": "R_actor_bo",
+          "name": "Branch Officer",
+          "aliases": [],
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "R_actor_ro",
+          "name": "Remittance Operations",
+          "aliases": [
+            "Ops"
+          ],
+          "evidence_refs": [
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        },
+        {
+          "id": "R_actor_cust",
+          "name": "Customer",
+          "aliases": [],
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "R_actor_treasury",
+          "name": "Treasury",
+          "aliases": [],
+          "evidence_refs": [
+            "E5"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "R_note_demo",
+          "kind": "note",
+          "label": "Note: Synthetic demo fixture for testing only",
+          "source_label": "SYNTHETIC DEMO FIXTURE - Telegraphic Transfer (TT) application intake. Written for testing only. Not a UOB procedure.",
+          "actor_id": null,
+          "from_ids": [
+            "T_note_demo"
+          ],
+          "evidence_refs": [
+            "E1"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_start",
+          "kind": "start",
+          "label": "Start application intake",
+          "source_label": "Start of application intake",
+          "actor_id": null,
+          "from_ids": [
+            "T_start"
+          ],
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_c1",
+          "kind": "action",
+          "label": "Receive and stamp TT application",
+          "source_label": "The Branch Officer receives the customer's TT application form and supporting documents at the counter and stamps the date and time of receipt.",
+          "actor_id": "R_actor_bo",
+          "from_ids": [
+            "T_c1"
+          ],
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c2",
+          "kind": "action",
+          "label": "Check original TT application",
+          "source_label": "The Remittance Operations team checks the original TT application.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c2"
+          ],
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c3",
+          "kind": "note",
+          "label": "Note: Instructions must be complete",
+          "source_label": "Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c3"
+          ],
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c4",
+          "kind": "note",
+          "label": "Note: Do not annotate or correct instructions",
+          "source_label": "Do not annotate or correct the customer's instructions on the form.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c4"
+          ],
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c5",
+          "kind": "decision",
+          "label": "Check if application contains alterations",
+          "source_label": "Does the application contain any alterations?",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c5"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_c6",
+          "kind": "action",
+          "label": "Check alteration countersignatures",
+          "source_label": "Ops checks that each alteration is countersigned by the customer using the specimen signature on record.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c6"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c7",
+          "kind": "decision",
+          "label": "Check if each alteration is countersigned",
+          "source_label": "Is each alteration countersigned?",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c7"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_c8",
+          "kind": "action",
+          "label": "Return application to Branch Officer",
+          "source_label": "The application is returned to the Branch Officer.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c8"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c9",
+          "kind": "action",
+          "label": "Contact customer to submit corrected application",
+          "source_label": "Branch Officer contacts the customer to submit a corrected application.",
+          "actor_id": "R_actor_bo",
+          "from_ids": [
+            "T_c9"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c10",
+          "kind": "decision",
+          "label": "Check if currency differs and amount > SGD 50,000",
+          "source_label": "Does the payment currency differ from the debit account currency and is the amount above SGD 50,000 equivalent?",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c10"
+          ],
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_c11",
+          "kind": "decision",
+          "label": "Check if FX contract number is captured",
+          "source_label": "Is the FX contract number booked with Treasury captured on the application?",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c11"
+          ],
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_c12",
+          "kind": "action",
+          "label": "Place application on hold",
+          "source_label": "The application is placed on hold.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c12"
+          ],
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c13",
+          "kind": "action",
+          "label": "Confirm booking",
+          "source_label": "Treasury confirms the booking.",
+          "actor_id": "R_actor_treasury",
+          "from_ids": [
+            "T_c13"
+          ],
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c14",
+          "kind": "action",
+          "label": "Pass application to payment processing queue",
+          "source_label": "Remittance Operations passes the application to the payment processing queue for authorisation.",
+          "actor_id": "R_actor_ro",
+          "from_ids": [
+            "T_c14"
+          ],
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c15",
+          "kind": "note",
+          "label": "Note: Authorisation and release covered in separate procedure",
+          "source_label": "Authorisation and release are covered in a separate procedure - see page 4.",
+          "actor_id": null,
+          "from_ids": [
+            "T_c15"
+          ],
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_c16",
+          "kind": "end",
+          "label": "End application intake",
+          "source_label": "End of application intake procedure",
+          "actor_id": null,
+          "from_ids": [
+            "T_c16"
+          ],
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "relations": [
+        {
+          "id": "R_r0",
+          "from": "R_start",
+          "to": "R_c1",
+          "condition": null,
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r1",
+          "from": "R_c1",
+          "to": "R_c2",
+          "condition": null,
+          "evidence_refs": [
+            "E2",
+            "E3"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r2",
+          "from": "R_c2",
+          "to": "R_c5",
+          "condition": null,
+          "evidence_refs": [
+            "E3",
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r3",
+          "from": "R_c5",
+          "to": "R_c6",
+          "condition": "Application contains alterations",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r4",
+          "from": "R_c5",
+          "to": "R_c10",
+          "condition": "Application does not contain alterations",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r5",
+          "from": "R_c6",
+          "to": "R_c7",
+          "condition": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r6",
+          "from": "R_c7",
+          "to": "R_c10",
+          "condition": "Each alteration is countersigned",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r7",
+          "from": "R_c7",
+          "to": "R_c8",
+          "condition": "Alteration is not countersigned",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r8",
+          "from": "R_c8",
+          "to": "R_c9",
+          "condition": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r9",
+          "from": "R_c9",
+          "to": "R_c2",
+          "condition": "Corrected application submitted",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r10",
+          "from": "R_c10",
+          "to": "R_c11",
+          "condition": "Payment currency differs and amount is above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r11",
+          "from": "R_c10",
+          "to": "R_c14",
+          "condition": "Payment currency does not differ or amount is not above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r12",
+          "from": "R_c11",
+          "to": "R_c14",
+          "condition": "FX contract number is provided",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r13",
+          "from": "R_c11",
+          "to": "R_c12",
+          "condition": "No FX contract number is provided",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r14",
+          "from": "R_c12",
+          "to": "R_c13",
+          "condition": null,
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "R_r15",
+          "from": "R_c13",
+          "to": "R_c14",
+          "condition": "Booking confirmed",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "R_r16",
+          "from": "R_c14",
+          "to": "R_c16",
+          "condition": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "changes": [
+        {
+          "type": "actor_merged",
+          "upstream_ids": [
+            "T_actor_ro"
+          ],
+          "result_id": "R_actor_ro",
+          "reason": "Merged Remittance Operations and Ops into a single actor with alias 'Ops' based on E4 text."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_note_demo"
+          ],
+          "result_id": "R_note_demo",
+          "reason": "Tightened label to short verb-object or concise note format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_start"
+          ],
+          "result_id": "R_start",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c1"
+          ],
+          "result_id": "R_c1",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c2"
+          ],
+          "result_id": "R_c2",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c3"
+          ],
+          "result_id": "R_c3",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c4"
+          ],
+          "result_id": "R_c4",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c5"
+          ],
+          "result_id": "R_c5",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c6"
+          ],
+          "result_id": "R_c6",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c7"
+          ],
+          "result_id": "R_c7",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c8"
+          ],
+          "result_id": "R_c8",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c9"
+          ],
+          "result_id": "R_c9",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c10"
+          ],
+          "result_id": "R_c10",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c11"
+          ],
+          "result_id": "R_c11",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c12"
+          ],
+          "result_id": "R_c12",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c13"
+          ],
+          "result_id": "R_c13",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c14"
+          ],
+          "result_id": "R_c14",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c15"
+          ],
+          "result_id": "R_c15",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "relabelled",
+          "upstream_ids": [
+            "T_c16"
+          ],
+          "result_id": "R_c16",
+          "reason": "Tightened label to short verb-object format."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r0"
+          ],
+          "result_id": "R_r0",
+          "reason": "Inferred relation between start and first step."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r1"
+          ],
+          "result_id": "R_r1",
+          "reason": "Inferred relation between step 1 and step 2."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r2"
+          ],
+          "result_id": "R_r2",
+          "reason": "Inferred relation between step 2 and step 3."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r4"
+          ],
+          "result_id": "R_r4",
+          "reason": "Inferred relation for negative branch of alterations check."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r5"
+          ],
+          "result_id": "R_r5",
+          "reason": "Inferred relation between alteration check and countersign check."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r6"
+          ],
+          "result_id": "R_r6",
+          "reason": "Inferred relation for positive branch of countersign check."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r11"
+          ],
+          "result_id": "R_r11",
+          "reason": "Inferred relation for negative branch of FX check."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r12"
+          ],
+          "result_id": "R_r12",
+          "reason": "Inferred relation for positive branch of FX contract check."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r15"
+          ],
+          "result_id": "R_r15",
+          "reason": "Inferred relation from Treasury confirmation to payment processing queue."
+        },
+        {
+          "type": "flagged",
+          "upstream_ids": [
+            "T_r16"
+          ],
+          "result_id": "R_r16",
+          "reason": "Inferred relation from payment processing queue to end."
+        }
+      ],
+      "issues": [
+        {
+          "code": "OWNER_UNKNOWN",
+          "severity": "info",
+          "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+          "element_ids": [
+            "R_start",
+            "R_note_demo",
+            "R_c15",
+            "R_c16"
+          ],
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        },
+        {
+          "code": "SOURCE_INCOMPLETE",
+          "severity": "info",
+          "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+          "element_ids": [
+            "R_c15"
+          ],
+          "evidence_refs": [
+            "E6"
+          ]
+        },
+        {
+          "code": "INFERRED_RELATION",
+          "severity": "info",
+          "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+          "element_ids": [
+            "R_r0",
+            "R_r1",
+            "R_r2",
+            "R_r4",
+            "R_r5",
+            "R_r6",
+            "R_r11",
+            "R_r12",
+            "R_r15",
+            "R_r16"
+          ],
+          "evidence_refs": [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        }
+      ]
+    },
+    "a4": {
+      "title": "Telegraphic Transfer (TT) Application Intake Process",
+      "lanes": [
+        {
+          "id": "L_bo",
+          "name": "Branch Officer",
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "L_ro",
+          "name": "Remittance Operations",
+          "evidence_refs": [
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        },
+        {
+          "id": "L_treasury",
+          "name": "Treasury",
+          "evidence_refs": [
+            "E5"
+          ]
+        },
+        {
+          "id": "L_unassigned",
+          "name": "Unassigned",
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "N_start",
+          "type": "start",
+          "label": "Start application intake",
+          "lane_id": "L_unassigned",
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c1",
+          "type": "task",
+          "label": "Receive and stamp TT application",
+          "lane_id": "L_bo",
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c2",
+          "type": "task",
+          "label": "Check original TT application",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c5",
+          "type": "exclusive_gateway",
+          "label": "Check if application contains alterations",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c6",
+          "type": "task",
+          "label": "Check alteration countersignatures",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c7",
+          "type": "exclusive_gateway",
+          "label": "Check if each alteration is countersigned",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c8",
+          "type": "task",
+          "label": "Return application to Branch Officer",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c9",
+          "type": "task",
+          "label": "Contact customer to submit corrected application",
+          "lane_id": "L_bo",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c10",
+          "type": "exclusive_gateway",
+          "label": "Check if payment currency differs from debit account currency and amount is above SGD 50,000 equivalent",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c11",
+          "type": "exclusive_gateway",
+          "label": "Check if FX contract number is captured",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c12",
+          "type": "task",
+          "label": "Place application on hold",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c13",
+          "type": "task",
+          "label": "Confirm booking",
+          "lane_id": "L_treasury",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c14",
+          "type": "task",
+          "label": "Pass application to payment processing queue",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c16",
+          "type": "end",
+          "label": "End application intake",
+          "lane_id": "L_unassigned",
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "edges": [
+        {
+          "id": "F_r0",
+          "source_id": "N_start",
+          "target_id": "N_c1",
+          "label": null,
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r1",
+          "source_id": "N_c1",
+          "target_id": "N_c2",
+          "label": null,
+          "evidence_refs": [
+            "E2",
+            "E3"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r2",
+          "source_id": "N_c2",
+          "target_id": "N_c5",
+          "label": null,
+          "evidence_refs": [
+            "E3",
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r3",
+          "source_id": "N_c5",
+          "target_id": "N_c6",
+          "label": "Application contains alterations",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r4",
+          "source_id": "N_c5",
+          "target_id": "N_c10",
+          "label": "Application does not contain alterations",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r5",
+          "source_id": "N_c6",
+          "target_id": "N_c7",
+          "label": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r6",
+          "source_id": "N_c7",
+          "target_id": "N_c10",
+          "label": "Each alteration is countersigned",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r7",
+          "source_id": "N_c7",
+          "target_id": "N_c8",
+          "label": "Alteration is not countersigned",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r8",
+          "source_id": "N_c8",
+          "target_id": "N_c9",
+          "label": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r9",
+          "source_id": "N_c9",
+          "target_id": "N_c2",
+          "label": "Corrected application submitted",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r10",
+          "source_id": "N_c10",
+          "target_id": "N_c11",
+          "label": "Payment currency differs and amount is above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r11",
+          "source_id": "N_c10",
+          "target_id": "N_c14",
+          "label": "Payment currency does not differ or amount is not above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r12",
+          "source_id": "N_c11",
+          "target_id": "N_c14",
+          "label": "FX contract number is provided",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r13",
+          "source_id": "N_c11",
+          "target_id": "N_c12",
+          "label": "No FX contract number is provided",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r14",
+          "source_id": "N_c12",
+          "target_id": "N_c13",
+          "label": null,
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r15",
+          "source_id": "N_c13",
+          "target_id": "N_c14",
+          "label": "Booking confirmed",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r16",
+          "source_id": "N_c14",
+          "target_id": "N_c16",
+          "label": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "annotations": [
+        {
+          "id": "A_note_demo",
+          "text": "Note: Synthetic demo fixture for testing only",
+          "attached_element_id": "N_start",
+          "evidence_refs": [
+            "E1"
+          ]
+        },
+        {
+          "id": "A_c3",
+          "text": "Note: Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.",
+          "attached_element_id": "N_c2",
+          "evidence_refs": [
+            "E3"
+          ]
+        },
+        {
+          "id": "A_c4",
+          "text": "Note: Do not annotate or correct instructions on the form.",
+          "attached_element_id": "N_c2",
+          "evidence_refs": [
+            "E3"
+          ]
+        },
+        {
+          "id": "A_c15",
+          "text": "Note: Authorisation and release covered in separate procedure - see page 4.",
+          "attached_element_id": "N_c14",
+          "evidence_refs": [
+            "E6"
+          ]
+        }
+      ],
+      "issues": [
+        {
+          "code": "OWNER_UNKNOWN",
+          "severity": "info",
+          "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+          "element_ids": [
+            "N_start",
+            "N_c16"
+          ],
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        },
+        {
+          "code": "SOURCE_INCOMPLETE",
+          "severity": "info",
+          "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+          "element_ids": [
+            "N_c14"
+          ],
+          "evidence_refs": [
+            "E6"
+          ]
+        },
+        {
+          "code": "INFERRED_RELATION",
+          "severity": "info",
+          "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+          "element_ids": [
+            "F_r0",
+            "F_r1",
+            "F_r2",
+            "F_r4",
+            "F_r5",
+            "F_r6",
+            "F_r11",
+            "F_r12",
+            "F_r15",
+            "F_r16"
+          ],
+          "evidence_refs": [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        }
+      ]
+    },
+    "a5": {
+      "findings": [
+        {
+          "code": "OMITTED_VERIFICATION_DETAIL",
+          "severity": "info",
+          "element_ids": [
+            "N_c6"
+          ],
+          "evidence_refs": [
+            "E4"
+          ],
+          "rationale": "The task 'Check alteration countersignatures' omits the specific requirement from E4 that the countersignature must be verified 'using the specimen signature on record'.",
+          "suggested_change": "Update the label of N_c6 to 'Check alteration countersignatures against specimen signature on record'."
+        },
+        {
+          "code": "OMITTED_RECEIPT_DETAILS",
+          "severity": "info",
+          "element_ids": [
+            "N_c1"
+          ],
+          "evidence_refs": [
+            "E2"
+          ],
+          "rationale": "The task 'Receive and stamp TT application' omits the receipt of 'supporting documents' and that the stamp must record the 'date and time of receipt' as specified in E2.",
+          "suggested_change": "Update the label of N_c1 to 'Receive TT application and supporting documents and stamp date and time of receipt'."
+        },
+        {
+          "code": "UNASSIGNED_LANES",
+          "severity": "review",
+          "element_ids": [
+            "N_start",
+            "N_c16"
+          ],
+          "evidence_refs": [
+            "E2",
+            "E6"
+          ],
+          "rationale": "The start and end nodes are placed in an 'Unassigned' lane. The start node represents the receipt of the application which is performed by the Branch Officer (E2), and the end node follows the hand-off by Remittance Operations (E6). Placing them in 'Unassigned' reduces clarity.",
+          "suggested_change": "Move N_start to the 'Branch Officer' lane (L_bo) and N_c16 to the 'Remittance Operations' lane (L_ro), and remove the 'Unassigned' lane."
+        }
+      ],
+      "review_complete": true
+    }
+  },
+  "result": {
+    "graph": {
+      "title": "Telegraphic Transfer (TT) Application Intake Process",
+      "lanes": [
+        {
+          "id": "L_bo",
+          "name": "Branch Officer",
+          "evidence_refs": [
+            "E2",
+            "E4"
+          ]
+        },
+        {
+          "id": "L_ro",
+          "name": "Remittance Operations",
+          "evidence_refs": [
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        },
+        {
+          "id": "L_treasury",
+          "name": "Treasury",
+          "evidence_refs": [
+            "E5"
+          ]
+        },
+        {
+          "id": "L_unassigned",
+          "name": "Unassigned",
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "N_start",
+          "type": "start",
+          "label": "Start application intake",
+          "lane_id": "L_unassigned",
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c1",
+          "type": "task",
+          "label": "Receive and stamp TT application",
+          "lane_id": "L_bo",
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c2",
+          "type": "task",
+          "label": "Check original TT application",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E3"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c5",
+          "type": "exclusive_gateway",
+          "label": "Check if application contains alterations",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c6",
+          "type": "task",
+          "label": "Check alteration countersignatures",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c7",
+          "type": "exclusive_gateway",
+          "label": "Check if each alteration is countersigned",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c8",
+          "type": "task",
+          "label": "Return application to Branch Officer",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c9",
+          "type": "task",
+          "label": "Contact customer to submit corrected application",
+          "lane_id": "L_bo",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c10",
+          "type": "exclusive_gateway",
+          "label": "Check if payment currency differs from debit account currency and amount is above SGD 50,000 equivalent",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c11",
+          "type": "exclusive_gateway",
+          "label": "Check if FX contract number is captured",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "N_c12",
+          "type": "task",
+          "label": "Place application on hold",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c13",
+          "type": "task",
+          "label": "Confirm booking",
+          "lane_id": "L_treasury",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c14",
+          "type": "task",
+          "label": "Pass application to payment processing queue",
+          "lane_id": "L_ro",
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "N_c16",
+          "type": "end",
+          "label": "End application intake",
+          "lane_id": "L_unassigned",
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "edges": [
+        {
+          "id": "F_r0",
+          "source_id": "N_start",
+          "target_id": "N_c1",
+          "label": null,
+          "evidence_refs": [
+            "E2"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r1",
+          "source_id": "N_c1",
+          "target_id": "N_c2",
+          "label": null,
+          "evidence_refs": [
+            "E2",
+            "E3"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r2",
+          "source_id": "N_c2",
+          "target_id": "N_c5",
+          "label": null,
+          "evidence_refs": [
+            "E3",
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r3",
+          "source_id": "N_c5",
+          "target_id": "N_c6",
+          "label": "Application contains alterations",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r4",
+          "source_id": "N_c5",
+          "target_id": "N_c10",
+          "label": "Application does not contain alterations",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r5",
+          "source_id": "N_c6",
+          "target_id": "N_c7",
+          "label": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r6",
+          "source_id": "N_c7",
+          "target_id": "N_c10",
+          "label": "Each alteration is countersigned",
+          "evidence_refs": [
+            "E4",
+            "E5"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r7",
+          "source_id": "N_c7",
+          "target_id": "N_c8",
+          "label": "Alteration is not countersigned",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r8",
+          "source_id": "N_c8",
+          "target_id": "N_c9",
+          "label": null,
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r9",
+          "source_id": "N_c9",
+          "target_id": "N_c2",
+          "label": "Corrected application submitted",
+          "evidence_refs": [
+            "E4"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r10",
+          "source_id": "N_c10",
+          "target_id": "N_c11",
+          "label": "Payment currency differs and amount is above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r11",
+          "source_id": "N_c10",
+          "target_id": "N_c14",
+          "label": "Payment currency does not differ or amount is not above SGD 50,000 equivalent",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r12",
+          "source_id": "N_c11",
+          "target_id": "N_c14",
+          "label": "FX contract number is provided",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r13",
+          "source_id": "N_c11",
+          "target_id": "N_c12",
+          "label": "No FX contract number is provided",
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r14",
+          "source_id": "N_c12",
+          "target_id": "N_c13",
+          "label": null,
+          "evidence_refs": [
+            "E5"
+          ],
+          "origin": "source_extracted"
+        },
+        {
+          "id": "F_r15",
+          "source_id": "N_c13",
+          "target_id": "N_c14",
+          "label": "Booking confirmed",
+          "evidence_refs": [
+            "E5",
+            "E6"
+          ],
+          "origin": "inferred"
+        },
+        {
+          "id": "F_r16",
+          "source_id": "N_c14",
+          "target_id": "N_c16",
+          "label": null,
+          "evidence_refs": [
+            "E6"
+          ],
+          "origin": "inferred"
+        }
+      ],
+      "annotations": [
+        {
+          "id": "A_note_demo",
+          "text": "Note: Synthetic demo fixture for testing only",
+          "attached_element_id": "N_start",
+          "evidence_refs": [
+            "E1"
+          ]
+        },
+        {
+          "id": "A_c3",
+          "text": "Note: Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.",
+          "attached_element_id": "N_c2",
+          "evidence_refs": [
+            "E3"
+          ]
+        },
+        {
+          "id": "A_c4",
+          "text": "Note: Do not annotate or correct instructions on the form.",
+          "attached_element_id": "N_c2",
+          "evidence_refs": [
+            "E3"
+          ]
+        },
+        {
+          "id": "A_c15",
+          "text": "Note: Authorisation and release covered in separate procedure - see page 4.",
+          "attached_element_id": "N_c14",
+          "evidence_refs": [
+            "E6"
+          ]
+        }
+      ],
+      "issues": [
+        {
+          "code": "OWNER_UNKNOWN",
+          "severity": "info",
+          "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+          "element_ids": [
+            "N_start",
+            "N_c16"
+          ],
+          "evidence_refs": [
+            "E1",
+            "E2",
+            "E6"
+          ]
+        },
+        {
+          "code": "SOURCE_INCOMPLETE",
+          "severity": "info",
+          "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+          "element_ids": [
+            "N_c14"
+          ],
+          "evidence_refs": [
+            "E6"
+          ]
+        },
+        {
+          "code": "INFERRED_RELATION",
+          "severity": "info",
+          "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+          "element_ids": [
+            "F_r0",
+            "F_r1",
+            "F_r2",
+            "F_r4",
+            "F_r5",
+            "F_r6",
+            "F_r11",
+            "F_r12",
+            "F_r15",
+            "F_r16"
+          ],
+          "evidence_refs": [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ]
+        }
+      ]
+    },
+    "issues": [
+      {
+        "code": "OWNER_UNKNOWN",
+        "severity": "info",
+        "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+        "element_ids": [
+          "T_start",
+          "T_note_demo",
+          "T_c15",
+          "T_c16"
+        ],
+        "evidence_refs": [
+          "E1",
+          "E2",
+          "E6"
+        ]
+      },
+      {
+        "code": "SOURCE_INCOMPLETE",
+        "severity": "info",
+        "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+        "element_ids": [
+          "T_c15"
+        ],
+        "evidence_refs": [
+          "E6"
+        ]
+      },
+      {
+        "code": "INFERRED_RELATION",
+        "severity": "info",
+        "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+        "element_ids": [
+          "T_r0",
+          "T_r1",
+          "T_r2",
+          "T_r4",
+          "T_r5",
+          "T_r6",
+          "T_r11",
+          "T_r12",
+          "T_r15",
+          "T_r16"
+        ],
+        "evidence_refs": [
+          "E2",
+          "E3",
+          "E4",
+          "E5",
+          "E6"
+        ]
+      },
+      {
+        "code": "OWNER_UNKNOWN",
+        "severity": "info",
+        "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+        "element_ids": [
+          "R_start",
+          "R_note_demo",
+          "R_c15",
+          "R_c16"
+        ],
+        "evidence_refs": [
+          "E1",
+          "E2",
+          "E6"
+        ]
+      },
+      {
+        "code": "SOURCE_INCOMPLETE",
+        "severity": "info",
+        "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+        "element_ids": [
+          "R_c15"
+        ],
+        "evidence_refs": [
+          "E6"
+        ]
+      },
+      {
+        "code": "INFERRED_RELATION",
+        "severity": "info",
+        "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+        "element_ids": [
+          "R_r0",
+          "R_r1",
+          "R_r2",
+          "R_r4",
+          "R_r5",
+          "R_r6",
+          "R_r11",
+          "R_r12",
+          "R_r15",
+          "R_r16"
+        ],
+        "evidence_refs": [
+          "E2",
+          "E3",
+          "E4",
+          "E5",
+          "E6"
+        ]
+      },
+      {
+        "code": "OWNER_UNKNOWN",
+        "severity": "info",
+        "message": "No actor is stated for the start of the process, the demo fixture note, the separate procedure note, and the end of the process.",
+        "element_ids": [
+          "N_start",
+          "N_c16"
+        ],
+        "evidence_refs": [
+          "E1",
+          "E2",
+          "E6"
+        ]
+      },
+      {
+        "code": "SOURCE_INCOMPLETE",
+        "severity": "info",
+        "message": "The text references a separate procedure on page 4 for authorisation and release, which is not provided in the input.",
+        "element_ids": [
+          "N_c14"
+        ],
+        "evidence_refs": [
+          "E6"
+        ]
+      },
+      {
+        "code": "INFERRED_RELATION",
+        "severity": "info",
+        "message": "Some relations are inferred because the text does not explicitly state the transition sequence, though it is logically implied by the step numbers or structure.",
+        "element_ids": [
+          "F_r0",
+          "F_r1",
+          "F_r2",
+          "F_r4",
+          "F_r5",
+          "F_r6",
+          "F_r11",
+          "F_r12",
+          "F_r15",
+          "F_r16"
+        ],
+        "evidence_refs": [
+          "E2",
+          "E3",
+          "E4",
+          "E5",
+          "E6"
+        ]
+      },
+      {
+        "code": "A5_OMITTED_VERIFICATION_DETAIL",
+        "severity": "info",
+        "message": "The task 'Check alteration countersignatures' omits the specific requirement from E4 that the countersignature must be verified 'using the specimen signature on record'. Suggested: Update the label of N_c6 to 'Check alteration countersignatures against specimen signature on record'.",
+        "element_ids": [
+          "N_c6"
+        ],
+        "evidence_refs": [
+          "E4"
+        ]
+      },
+      {
+        "code": "A5_OMITTED_RECEIPT_DETAILS",
+        "severity": "info",
+        "message": "The task 'Receive and stamp TT application' omits the receipt of 'supporting documents' and that the stamp must record the 'date and time of receipt' as specified in E2. Suggested: Update the label of N_c1 to 'Receive TT application and supporting documents and stamp date and time of receipt'.",
+        "element_ids": [
+          "N_c1"
+        ],
+        "evidence_refs": [
+          "E2"
+        ]
+      },
+      {
+        "code": "A5_UNASSIGNED_LANES",
+        "severity": "review",
+        "message": "The start and end nodes are placed in an 'Unassigned' lane. The start node represents the receipt of the application which is performed by the Branch Officer (E2), and the end node follows the hand-off by Remittance Operations (E6). Placing them in 'Unassigned' reduces clarity. Suggested: Move N_start to the 'Branch Officer' lane (L_bo) and N_c16 to the 'Remittance Operations' lane (L_ro), and remove the 'Unassigned' lane.",
+        "element_ids": [
+          "N_start",
+          "N_c16"
+        ],
+        "evidence_refs": [
+          "E2",
+          "E6"
+        ]
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_start is inferred, not stated in the source",
+        "element_ids": [
+          "N_start"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_c5 is inferred, not stated in the source",
+        "element_ids": [
+          "N_c5"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_c7 is inferred, not stated in the source",
+        "element_ids": [
+          "N_c7"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_c10 is inferred, not stated in the source",
+        "element_ids": [
+          "N_c10"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_c11 is inferred, not stated in the source",
+        "element_ids": [
+          "N_c11"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "N_c16 is inferred, not stated in the source",
+        "element_ids": [
+          "N_c16"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r0 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r0"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r1 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r1"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r2 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r2"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r4 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r4"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r5 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r5"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r6 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r6"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r11 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r11"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r12 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r12"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r15 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r15"
+        ],
+        "evidence_refs": []
+      },
+      {
+        "code": "V07_INFERRED",
+        "severity": "review",
+        "message": "F_r16 is inferred, not stated in the source",
+        "element_ids": [
+          "F_r16"
+        ],
+        "evidence_refs": []
+      }
+    ],
+    "changes": [
+      {
+        "type": "actor_merged",
+        "upstream_ids": [
+          "T_actor_ro"
+        ],
+        "result_id": "R_actor_ro",
+        "reason": "Merged Remittance Operations and Ops into a single actor with alias 'Ops' based on E4 text."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_note_demo"
+        ],
+        "result_id": "R_note_demo",
+        "reason": "Tightened label to short verb-object or concise note format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_start"
+        ],
+        "result_id": "R_start",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c1"
+        ],
+        "result_id": "R_c1",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c2"
+        ],
+        "result_id": "R_c2",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c3"
+        ],
+        "result_id": "R_c3",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c4"
+        ],
+        "result_id": "R_c4",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c5"
+        ],
+        "result_id": "R_c5",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c6"
+        ],
+        "result_id": "R_c6",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c7"
+        ],
+        "result_id": "R_c7",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c8"
+        ],
+        "result_id": "R_c8",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c9"
+        ],
+        "result_id": "R_c9",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c10"
+        ],
+        "result_id": "R_c10",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c11"
+        ],
+        "result_id": "R_c11",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c12"
+        ],
+        "result_id": "R_c12",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c13"
+        ],
+        "result_id": "R_c13",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c14"
+        ],
+        "result_id": "R_c14",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c15"
+        ],
+        "result_id": "R_c15",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "relabelled",
+        "upstream_ids": [
+          "T_c16"
+        ],
+        "result_id": "R_c16",
+        "reason": "Tightened label to short verb-object format."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r0"
+        ],
+        "result_id": "R_r0",
+        "reason": "Inferred relation between start and first step."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r1"
+        ],
+        "result_id": "R_r1",
+        "reason": "Inferred relation between step 1 and step 2."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r2"
+        ],
+        "result_id": "R_r2",
+        "reason": "Inferred relation between step 2 and step 3."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r4"
+        ],
+        "result_id": "R_r4",
+        "reason": "Inferred relation for negative branch of alterations check."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r5"
+        ],
+        "result_id": "R_r5",
+        "reason": "Inferred relation between alteration check and countersign check."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r6"
+        ],
+        "result_id": "R_r6",
+        "reason": "Inferred relation for positive branch of countersign check."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r11"
+        ],
+        "result_id": "R_r11",
+        "reason": "Inferred relation for negative branch of FX check."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r12"
+        ],
+        "result_id": "R_r12",
+        "reason": "Inferred relation for positive branch of FX contract check."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r15"
+        ],
+        "result_id": "R_r15",
+        "reason": "Inferred relation from Treasury confirmation to payment processing queue."
+      },
+      {
+        "type": "flagged",
+        "upstream_ids": [
+          "T_r16"
+        ],
+        "result_id": "R_r16",
+        "reason": "Inferred relation from payment processing queue to end."
+      }
+    ],
+    "bpmnXml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<bpmn:definitions xmlns:bpmn=\"http://www.omg.org/spec/BPMN/20100524/MODEL\" xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\" xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\" xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\" id=\"Definitions_1\" targetNamespace=\"http://bpmn.io/schema/bpmn\" exporter=\"agent-orchestrator\" exporterVersion=\"0.1\">\n  <bpmn:collaboration id=\"Collaboration_1\">\n    <bpmn:documentation>AI-generated DRAFT. Simplified responsibility view; requires human review. Not an approved procedure.</bpmn:documentation>\n    <bpmn:participant id=\"Participant_1\" name=\"Telegraphic Transfer (TT) Application Intake Process\" processRef=\"Process_1\" />\n  </bpmn:collaboration>\n  <bpmn:process id=\"Process_1\" isExecutable=\"false\">\n    <bpmn:laneSet id=\"LaneSet_1\">\n      <bpmn:lane id=\"L_bo\" name=\"Branch Officer\">\n        <bpmn:flowNodeRef>N_c1</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c9</bpmn:flowNodeRef>\n      </bpmn:lane>\n      <bpmn:lane id=\"L_ro\" name=\"Remittance Operations\">\n        <bpmn:flowNodeRef>N_c2</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c5</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c6</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c7</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c8</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c10</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c11</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c12</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c14</bpmn:flowNodeRef>\n      </bpmn:lane>\n      <bpmn:lane id=\"L_treasury\" name=\"Treasury\">\n        <bpmn:flowNodeRef>N_c13</bpmn:flowNodeRef>\n      </bpmn:lane>\n      <bpmn:lane id=\"L_unassigned\" name=\"Unassigned\">\n        <bpmn:flowNodeRef>N_start</bpmn:flowNodeRef>\n        <bpmn:flowNodeRef>N_c16</bpmn:flowNodeRef>\n      </bpmn:lane>\n    </bpmn:laneSet>\n    <bpmn:startEvent id=\"N_start\" name=\"Start application intake\">\n      <bpmn:documentation>evidence: E2; origin: inferred</bpmn:documentation>\n      <bpmn:outgoing>F_r0</bpmn:outgoing>\n    </bpmn:startEvent>\n    <bpmn:task id=\"N_c1\" name=\"Receive and stamp TT application\">\n      <bpmn:documentation>evidence: E2; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r0</bpmn:incoming>\n      <bpmn:outgoing>F_r1</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:task id=\"N_c2\" name=\"Check original TT application\">\n      <bpmn:documentation>evidence: E3; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r1</bpmn:incoming>\n      <bpmn:incoming>F_r9</bpmn:incoming>\n      <bpmn:outgoing>F_r2</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:exclusiveGateway id=\"N_c5\" name=\"Check if application contains alterations\">\n      <bpmn:documentation>evidence: E4; origin: inferred</bpmn:documentation>\n      <bpmn:incoming>F_r2</bpmn:incoming>\n      <bpmn:outgoing>F_r3</bpmn:outgoing>\n      <bpmn:outgoing>F_r4</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:task id=\"N_c6\" name=\"Check alteration countersignatures\">\n      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r3</bpmn:incoming>\n      <bpmn:outgoing>F_r5</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:exclusiveGateway id=\"N_c7\" name=\"Check if each alteration is countersigned\">\n      <bpmn:documentation>evidence: E4; origin: inferred</bpmn:documentation>\n      <bpmn:incoming>F_r5</bpmn:incoming>\n      <bpmn:outgoing>F_r6</bpmn:outgoing>\n      <bpmn:outgoing>F_r7</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:task id=\"N_c8\" name=\"Return application to Branch Officer\">\n      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r7</bpmn:incoming>\n      <bpmn:outgoing>F_r8</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:task id=\"N_c9\" name=\"Contact customer to submit corrected application\">\n      <bpmn:documentation>evidence: E4; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r8</bpmn:incoming>\n      <bpmn:outgoing>F_r9</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:exclusiveGateway id=\"N_c10\" name=\"Check if payment currency differs from debit account currency and amount is above SGD 50,000 equivalent\">\n      <bpmn:documentation>evidence: E5; origin: inferred</bpmn:documentation>\n      <bpmn:incoming>F_r4</bpmn:incoming>\n      <bpmn:incoming>F_r6</bpmn:incoming>\n      <bpmn:outgoing>F_r10</bpmn:outgoing>\n      <bpmn:outgoing>F_r11</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:exclusiveGateway id=\"N_c11\" name=\"Check if FX contract number is captured\">\n      <bpmn:documentation>evidence: E5; origin: inferred</bpmn:documentation>\n      <bpmn:incoming>F_r10</bpmn:incoming>\n      <bpmn:outgoing>F_r12</bpmn:outgoing>\n      <bpmn:outgoing>F_r13</bpmn:outgoing>\n    </bpmn:exclusiveGateway>\n    <bpmn:task id=\"N_c12\" name=\"Place application on hold\">\n      <bpmn:documentation>evidence: E5; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r13</bpmn:incoming>\n      <bpmn:outgoing>F_r14</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:task id=\"N_c13\" name=\"Confirm booking\">\n      <bpmn:documentation>evidence: E5; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r14</bpmn:incoming>\n      <bpmn:outgoing>F_r15</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:task id=\"N_c14\" name=\"Pass application to payment processing queue\">\n      <bpmn:documentation>evidence: E6; origin: source_extracted</bpmn:documentation>\n      <bpmn:incoming>F_r11</bpmn:incoming>\n      <bpmn:incoming>F_r12</bpmn:incoming>\n      <bpmn:incoming>F_r15</bpmn:incoming>\n      <bpmn:outgoing>F_r16</bpmn:outgoing>\n    </bpmn:task>\n    <bpmn:endEvent id=\"N_c16\" name=\"End application intake\">\n      <bpmn:documentation>evidence: E6; origin: inferred</bpmn:documentation>\n      <bpmn:incoming>F_r16</bpmn:incoming>\n    </bpmn:endEvent>\n    <bpmn:sequenceFlow id=\"F_r0\" sourceRef=\"N_start\" targetRef=\"N_c1\" />\n    <bpmn:sequenceFlow id=\"F_r1\" sourceRef=\"N_c1\" targetRef=\"N_c2\" />\n    <bpmn:sequenceFlow id=\"F_r2\" sourceRef=\"N_c2\" targetRef=\"N_c5\" />\n    <bpmn:sequenceFlow id=\"F_r3\" sourceRef=\"N_c5\" targetRef=\"N_c6\" name=\"Application contains alterations\" />\n    <bpmn:sequenceFlow id=\"F_r4\" sourceRef=\"N_c5\" targetRef=\"N_c10\" name=\"Application does not contain alterations\" />\n    <bpmn:sequenceFlow id=\"F_r5\" sourceRef=\"N_c6\" targetRef=\"N_c7\" />\n    <bpmn:sequenceFlow id=\"F_r6\" sourceRef=\"N_c7\" targetRef=\"N_c10\" name=\"Each alteration is countersigned\" />\n    <bpmn:sequenceFlow id=\"F_r7\" sourceRef=\"N_c7\" targetRef=\"N_c8\" name=\"Alteration is not countersigned\" />\n    <bpmn:sequenceFlow id=\"F_r8\" sourceRef=\"N_c8\" targetRef=\"N_c9\" />\n    <bpmn:sequenceFlow id=\"F_r9\" sourceRef=\"N_c9\" targetRef=\"N_c2\" name=\"Corrected application submitted\" />\n    <bpmn:sequenceFlow id=\"F_r10\" sourceRef=\"N_c10\" targetRef=\"N_c11\" name=\"Payment currency differs and amount is above SGD 50,000 equivalent\" />\n    <bpmn:sequenceFlow id=\"F_r11\" sourceRef=\"N_c10\" targetRef=\"N_c14\" name=\"Payment currency does not differ or amount is not above SGD 50,000 equivalent\" />\n    <bpmn:sequenceFlow id=\"F_r12\" sourceRef=\"N_c11\" targetRef=\"N_c14\" name=\"FX contract number is provided\" />\n    <bpmn:sequenceFlow id=\"F_r13\" sourceRef=\"N_c11\" targetRef=\"N_c12\" name=\"No FX contract number is provided\" />\n    <bpmn:sequenceFlow id=\"F_r14\" sourceRef=\"N_c12\" targetRef=\"N_c13\" />\n    <bpmn:sequenceFlow id=\"F_r15\" sourceRef=\"N_c13\" targetRef=\"N_c14\" name=\"Booking confirmed\" />\n    <bpmn:sequenceFlow id=\"F_r16\" sourceRef=\"N_c14\" targetRef=\"N_c16\" />\n    <bpmn:textAnnotation id=\"A_note_demo\">\n      <bpmn:text>Note: Synthetic demo fixture for testing only</bpmn:text>\n    </bpmn:textAnnotation>\n    <bpmn:association id=\"A_note_demo_assoc\" sourceRef=\"N_start\" targetRef=\"A_note_demo\" />\n    <bpmn:textAnnotation id=\"A_c3\">\n      <bpmn:text>Note: Instructions must be complete: beneficiary name, beneficiary account number, beneficiary bank SWIFT code, amount and currency.</bpmn:text>\n    </bpmn:textAnnotation>\n    <bpmn:association id=\"A_c3_assoc\" sourceRef=\"N_c2\" targetRef=\"A_c3\" />\n    <bpmn:textAnnotation id=\"A_c4\">\n      <bpmn:text>Note: Do not annotate or correct instructions on the form.</bpmn:text>\n    </bpmn:textAnnotation>\n    <bpmn:association id=\"A_c4_assoc\" sourceRef=\"N_c2\" targetRef=\"A_c4\" />\n    <bpmn:textAnnotation id=\"A_c15\">\n      <bpmn:text>Note: Authorisation and release covered in separate procedure - see page 4.</bpmn:text>\n    </bpmn:textAnnotation>\n    <bpmn:association id=\"A_c15_assoc\" sourceRef=\"N_c14\" targetRef=\"A_c15\" />\n  </bpmn:process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_1\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_1\" bpmnElement=\"Collaboration_1\">\n      <bpmndi:BPMNShape id=\"Participant_1_di\" bpmnElement=\"Participant_1\" isHorizontal=\"true\">\n        <dc:Bounds x=\"40\" y=\"40\" width=\"2380\" height=\"660\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"L_bo_di\" bpmnElement=\"L_bo\" isHorizontal=\"true\">\n        <dc:Bounds x=\"70\" y=\"40\" width=\"2350\" height=\"140\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"L_ro_di\" bpmnElement=\"L_ro\" isHorizontal=\"true\">\n        <dc:Bounds x=\"70\" y=\"180\" width=\"2350\" height=\"240\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"L_treasury_di\" bpmnElement=\"L_treasury\" isHorizontal=\"true\">\n        <dc:Bounds x=\"70\" y=\"420\" width=\"2350\" height=\"140\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"L_unassigned_di\" bpmnElement=\"L_unassigned\" isHorizontal=\"true\">\n        <dc:Bounds x=\"70\" y=\"560\" width=\"2350\" height=\"140\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_start_di\" bpmnElement=\"N_start\">\n        <dc:Bounds x=\"142\" y=\"612\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c1_di\" bpmnElement=\"N_c1\">\n        <dc:Bounds x=\"275\" y=\"75\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c2_di\" bpmnElement=\"N_c2\">\n        <dc:Bounds x=\"445\" y=\"215\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c5_di\" bpmnElement=\"N_c5\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"645\" y=\"225\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c6_di\" bpmnElement=\"N_c6\">\n        <dc:Bounds x=\"785\" y=\"215\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c7_di\" bpmnElement=\"N_c7\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"985\" y=\"225\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c8_di\" bpmnElement=\"N_c8\">\n        <dc:Bounds x=\"1125\" y=\"215\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c9_di\" bpmnElement=\"N_c9\">\n        <dc:Bounds x=\"1295\" y=\"75\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c10_di\" bpmnElement=\"N_c10\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"1155\" y=\"325\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c11_di\" bpmnElement=\"N_c11\" isMarkerVisible=\"true\">\n        <dc:Bounds x=\"1325\" y=\"225\" width=\"50\" height=\"50\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c12_di\" bpmnElement=\"N_c12\">\n        <dc:Bounds x=\"1465\" y=\"215\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c13_di\" bpmnElement=\"N_c13\">\n        <dc:Bounds x=\"1635\" y=\"455\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c14_di\" bpmnElement=\"N_c14\">\n        <dc:Bounds x=\"1805\" y=\"215\" width=\"110\" height=\"70\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNShape id=\"N_c16_di\" bpmnElement=\"N_c16\">\n        <dc:Bounds x=\"2012\" y=\"612\" width=\"36\" height=\"36\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"F_r0_di\" bpmnElement=\"F_r0\">\n        <di:waypoint x=\"178\" y=\"630\" />\n        <di:waypoint x=\"227\" y=\"630\" />\n        <di:waypoint x=\"227\" y=\"110\" />\n        <di:waypoint x=\"275\" y=\"110\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r1_di\" bpmnElement=\"F_r1\">\n        <di:waypoint x=\"385\" y=\"110\" />\n        <di:waypoint x=\"415\" y=\"110\" />\n        <di:waypoint x=\"415\" y=\"250\" />\n        <di:waypoint x=\"445\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r2_di\" bpmnElement=\"F_r2\">\n        <di:waypoint x=\"555\" y=\"250\" />\n        <di:waypoint x=\"645\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r3_di\" bpmnElement=\"F_r3\">\n        <di:waypoint x=\"695\" y=\"250\" />\n        <di:waypoint x=\"785\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r4_di\" bpmnElement=\"F_r4\">\n        <di:waypoint x=\"695\" y=\"250\" />\n        <di:waypoint x=\"925\" y=\"250\" />\n        <di:waypoint x=\"925\" y=\"350\" />\n        <di:waypoint x=\"1155\" y=\"350\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r5_di\" bpmnElement=\"F_r5\">\n        <di:waypoint x=\"895\" y=\"250\" />\n        <di:waypoint x=\"985\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r6_di\" bpmnElement=\"F_r6\">\n        <di:waypoint x=\"1035\" y=\"250\" />\n        <di:waypoint x=\"1095\" y=\"250\" />\n        <di:waypoint x=\"1095\" y=\"350\" />\n        <di:waypoint x=\"1155\" y=\"350\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r7_di\" bpmnElement=\"F_r7\">\n        <di:waypoint x=\"1035\" y=\"250\" />\n        <di:waypoint x=\"1125\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r8_di\" bpmnElement=\"F_r8\">\n        <di:waypoint x=\"1235\" y=\"250\" />\n        <di:waypoint x=\"1265\" y=\"250\" />\n        <di:waypoint x=\"1265\" y=\"110\" />\n        <di:waypoint x=\"1295\" y=\"110\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r9_di\" bpmnElement=\"F_r9\">\n        <di:waypoint x=\"1350\" y=\"145\" />\n        <di:waypoint x=\"1350\" y=\"310\" />\n        <di:waypoint x=\"500\" y=\"310\" />\n        <di:waypoint x=\"500\" y=\"285\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r10_di\" bpmnElement=\"F_r10\">\n        <di:waypoint x=\"1205\" y=\"350\" />\n        <di:waypoint x=\"1265\" y=\"350\" />\n        <di:waypoint x=\"1265\" y=\"250\" />\n        <di:waypoint x=\"1325\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r11_di\" bpmnElement=\"F_r11\">\n        <di:waypoint x=\"1205\" y=\"350\" />\n        <di:waypoint x=\"1505\" y=\"350\" />\n        <di:waypoint x=\"1505\" y=\"250\" />\n        <di:waypoint x=\"1805\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r12_di\" bpmnElement=\"F_r12\">\n        <di:waypoint x=\"1375\" y=\"250\" />\n        <di:waypoint x=\"1805\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r13_di\" bpmnElement=\"F_r13\">\n        <di:waypoint x=\"1375\" y=\"250\" />\n        <di:waypoint x=\"1465\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r14_di\" bpmnElement=\"F_r14\">\n        <di:waypoint x=\"1575\" y=\"250\" />\n        <di:waypoint x=\"1605\" y=\"250\" />\n        <di:waypoint x=\"1605\" y=\"490\" />\n        <di:waypoint x=\"1635\" y=\"490\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r15_di\" bpmnElement=\"F_r15\">\n        <di:waypoint x=\"1745\" y=\"490\" />\n        <di:waypoint x=\"1775\" y=\"490\" />\n        <di:waypoint x=\"1775\" y=\"250\" />\n        <di:waypoint x=\"1805\" y=\"250\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNEdge id=\"F_r16_di\" bpmnElement=\"F_r16\">\n        <di:waypoint x=\"1915\" y=\"250\" />\n        <di:waypoint x=\"1964\" y=\"250\" />\n        <di:waypoint x=\"1964\" y=\"630\" />\n        <di:waypoint x=\"2012\" y=\"630\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"A_note_demo_di\" bpmnElement=\"A_note_demo\">\n        <dc:Bounds x=\"188\" y=\"557\" width=\"150\" height=\"45\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"A_note_demo_assoc_di\" bpmnElement=\"A_note_demo_assoc\">\n        <di:waypoint x=\"160\" y=\"612\" />\n        <di:waypoint x=\"188\" y=\"580\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"A_c3_di\" bpmnElement=\"A_c3\">\n        <dc:Bounds x=\"565\" y=\"160\" width=\"150\" height=\"45\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"A_c3_assoc_di\" bpmnElement=\"A_c3_assoc\">\n        <di:waypoint x=\"500\" y=\"215\" />\n        <di:waypoint x=\"565\" y=\"183\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"A_c4_di\" bpmnElement=\"A_c4\">\n        <dc:Bounds x=\"565\" y=\"160\" width=\"150\" height=\"45\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"A_c4_assoc_di\" bpmnElement=\"A_c4_assoc\">\n        <di:waypoint x=\"500\" y=\"215\" />\n        <di:waypoint x=\"565\" y=\"183\" />\n      </bpmndi:BPMNEdge>\n      <bpmndi:BPMNShape id=\"A_c15_di\" bpmnElement=\"A_c15\">\n        <dc:Bounds x=\"1925\" y=\"160\" width=\"150\" height=\"45\" />\n      </bpmndi:BPMNShape>\n      <bpmndi:BPMNEdge id=\"A_c15_assoc_di\" bpmnElement=\"A_c15_assoc\">\n        <di:waypoint x=\"1860\" y=\"215\" />\n        <di:waypoint x=\"1925\" y=\"183\" />\n      </bpmndi:BPMNEdge>\n    </bpmndi:BPMNPlane>\n  </bpmndi:BPMNDiagram>\n</bpmn:definitions>\n"
+  }
+}
