@@ -4,7 +4,7 @@ import { compileBpmn } from "./bpmn.js";
 import { normalize, type JobInput, type LayoutView } from "./evidence.js";
 import type { Provider } from "./llm.js";
 import { applyClaimPatch, applyPatch } from "./patch.js";
-import { attachmentLabel, buildPrompt, renderChatPacket, type PromptInputs, type PromptMode } from "./prompts.js";
+import { attachmentLabel, buildChatPacket, buildPrompt, type PromptInputs, type PromptMode } from "./prompts.js";
 import type { A1Output, A2Output, A3Output, A3Refined, A4Graph, A5Critique, Evidence, Finding, Issue, OutputKind, Role, TraceEntry } from "./schemas.js";
 import { OUTPUT_SCHEMAS, ROLE_NAMES } from "./schemas.js";
 import { checkRefine, draftable, isStructural, placeEvents, structuralFindings, validateGraph } from "./validate.js";
@@ -57,7 +57,8 @@ type S = typeof State.State;
 
 // schema: which output the pasted reply must match (A3_PATCH for the claim audit, A4_PATCH for a
 // repair, otherwise the role). step: which pass of the role this is, e.g. "extract decisions".
-export type ChatHandoff = { role: Role; step: string; schema: OutputKind; roleName: string; prompt: string; attachments: string[] };
+// chars / maxChars: the prompt's length against Copilot's message limit (it is shrunk to fit when needed).
+export type ChatHandoff = { role: Role; step: string; schema: OutputKind; roleName: string; prompt: string; chars: number; maxChars: number; attachments: string[] };
 
 /**
  * Run one specialist. API mode calls the provider; chat mode pauses the graph with interrupt()
@@ -76,13 +77,17 @@ async function runRole<K extends OutputKind>(
   if (prompt.kind !== kind) throw new Error(`Prompt for ${role}/${mode} returns ${prompt.kind}, expected ${kind}`);
 
   if (s.mode === "chat") {
+    // Copilot Chat takes one message of limited length, so the packet is shrunk to fit.
+    const chat = buildChatPacket(role, inputs, mode);
     const handoff: ChatHandoff = {
       role,
       step,
       schema: kind,
       roleName: ROLE_NAMES[role],
-      prompt: renderChatPacket(prompt),
-      attachments: prompt.images.map((i) => `${i.id}: ${attachmentLabel(i)}`),
+      prompt: chat.packet,
+      chars: chat.chars,
+      maxChars: chat.max,
+      attachments: chat.prompt.images.map((i) => `${i.id}: ${attachmentLabel(i)}`),
     };
     const resumed = interrupt(handoff);
     const output = OUTPUT_SCHEMAS[kind].parse(resumed) as (typeof OUTPUT_SCHEMAS)[K]["_output"];

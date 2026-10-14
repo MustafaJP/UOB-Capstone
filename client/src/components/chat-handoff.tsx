@@ -40,6 +40,9 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
+  // The server shrinks the prompt to fit one Copilot message; older saved runs carry no counts.
+  const chars = pending.chars ?? pending.prompt.length;
+  const overLimit = pending.maxChars != null && chars > pending.maxChars;
 
   const copy = async () => {
     try {
@@ -76,16 +79,27 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <Label>Prompt</Label>
-            <Button variant="outline" size="sm" onClick={copy}>
-              {copied ? <CheckIcon /> : <CopyIcon />}
-              {copied ? "Copied" : "Copy prompt"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <span className={overLimit ? "text-xs font-medium text-destructive" : "text-xs text-muted-foreground"}>
+                {chars.toLocaleString()}
+                {pending.maxChars != null && ` / ${pending.maxChars.toLocaleString()}`} characters
+              </span>
+              <Button variant="outline" size="sm" onClick={copy}>
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                {copied ? "Copied" : "Copy prompt"}
+              </Button>
+            </div>
           </div>
           <ScrollArea className="h-64 rounded-lg border bg-muted/30">
             <pre className="p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap">{pending.prompt}</pre>
           </ScrollArea>
+          {overLimit && (
+            <p className="text-xs text-destructive">
+              Still over Copilot&rsquo;s message limit after shrinking. Copilot may reject it: continue this step via API instead.
+            </p>
+          )}
         </div>
 
         {pending.attachments.length > 0 && (

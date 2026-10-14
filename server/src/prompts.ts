@@ -224,6 +224,22 @@ export type BuiltPrompt = {
 // Compact (no indentation): agent outputs and schemas are passed on whole, and whitespace is input tokens.
 const json = (v: unknown) => JSON.stringify(v);
 
+/** How far to shrink agent outputs passed as input (Copilot Chat only; see buildChatPacket). */
+export type Slim = 0 | 1 | 2;
+const BOOKKEEPING = new Set(["source_label", "changes"]);
+
+function slimmed(v: unknown, slim: Slim): unknown {
+  if (Array.isArray(v)) return v.map((x) => slimmed(x, slim));
+  if (!v || typeof v !== "object") return v;
+  const out: Record<string, unknown> = {};
+  for (const [k, x] of Object.entries(v)) {
+    if (x === null || (Array.isArray(x) && !x.length) || (k === "origin" && x === "source_extracted")) continue;
+    if (slim >= 2 && BOOKKEEPING.has(k)) continue;
+    out[k] = slimmed(x, slim);
+  }
+  return out;
+}
+
 function manifest(evidence: Evidence[], withText: boolean, withImages: boolean): string {
   return evidence
     .filter((e) => (e.kind === "text" ? withText : withImages))
@@ -234,7 +250,8 @@ function manifest(evidence: Evidence[], withText: boolean, withImages: boolean):
     .join("\n\n");
 }
 
-export function buildPrompt(role: Role, inp: PromptInputs, mode: PromptMode = "full"): BuiltPrompt {
+export function buildPrompt(role: Role, inp: PromptInputs, mode: PromptMode = "full", slim: Slim = 0): BuiltPrompt {
+  const data = (v: unknown) => json(slim ? slimmed(v, slim) : v);
   const kind: OutputKind =
     role === "A4" && mode === "repair" ? "A4_PATCH" : role === "A3" && mode === "audit" ? "A3_PATCH" : role;
   const system = [
@@ -253,7 +270,7 @@ export function buildPrompt(role: Role, inp: PromptInputs, mode: PromptMode = "f
     case "A1":
       if (mode === "gaps") {
         sections.push(`UNCOVERED TEXT BLOCKS:\n${manifest(inp.evidence, true, false)}`);
-        sections.push(`EXISTING ACTORS AND CLAIMS (from the earlier passes):\n${json(inp.existing)}`);
+        sections.push(`EXISTING ACTORS AND CLAIMS (from the earlier passes):\n${data(inp.existing)}`);
         break;
       }
       sections.push(`TEXT EVIDENCE:\n${manifest(inp.evidence, true, false)}`);
@@ -271,35 +288,35 @@ export function buildPrompt(role: Role, inp: PromptInputs, mode: PromptMode = "f
       break;
     case "A3":
       if (mode === "audit") {
-        sections.push(`REFINED CLAIMS:\n${json(inp.refined)}`);
+        sections.push(`REFINED CLAIMS:\n${data(inp.refined)}`);
         sections.push(`ORIGINAL EVIDENCE:\n${manifest(inp.evidence, true, true)}`);
         break;
       }
-      sections.push(`A1 TEXT EXTRACTION:\n${inp.a1 ? json(inp.a1) : "(none: no text input)"}`);
-      sections.push(`A2 DIAGRAM INTERPRETATION:\n${inp.a2 ? json(inp.a2) : "(none: no diagram input)"}`);
+      sections.push(`A1 TEXT EXTRACTION:\n${inp.a1 ? data(inp.a1) : "(none: no text input)"}`);
+      sections.push(`A2 DIAGRAM INTERPRETATION:\n${inp.a2 ? data(inp.a2) : "(none: no diagram input)"}`);
       sections.push(`EVIDENCE MANIFEST:\n${manifest(inp.evidence, true, true)}`);
       break;
     case "A4":
       if (mode === "repair") {
-        sections.push(`CRITIC FINDINGS:\n${json(inp.findings)}`);
-        sections.push(`CURRENT CANDIDATE GRAPH:\n${json(inp.candidate)}`);
-        sections.push(`RELEVANT REFINED CLAIMS (from A3):\n${json(inp.refined)}`);
+        sections.push(`CRITIC FINDINGS:\n${data(inp.findings)}`);
+        sections.push(`CURRENT CANDIDATE GRAPH:\n${data(inp.candidate)}`);
+        sections.push(`RELEVANT REFINED CLAIMS (from A3):\n${data(inp.refined)}`);
         sections.push(`RELEVANT EVIDENCE:\n${manifest(inp.evidence, true, true)}`);
       } else {
         // Compose works from the refined claims, which already carry their evidence IDs; the
         // source text is left out to keep the prompt small. A5 still reviews against the full text.
-        sections.push(`REFINED CLAIMS (from A3):\n${json(inp.refined)}`);
+        sections.push(`REFINED CLAIMS (from A3):\n${data(inp.refined)}`);
         sections.push(`VALID EVIDENCE IDS (cite only these, as the claims do):\n${inp.evidence.map((e) => e.id).join(", ")}`);
       }
       break;
     case "A5":
       if (mode === "recheck") {
-        sections.push(`PREVIOUS FINDINGS:\n${json(inp.findings)}`);
-        sections.push(`CHANGED ELEMENTS (IDs; removed ones are no longer in the graph):\n${json(inp.changed)}`);
-        sections.push(`CANDIDATE GRAPH:\n${json(inp.candidate)}`);
+        sections.push(`PREVIOUS FINDINGS:\n${data(inp.findings)}`);
+        sections.push(`CHANGED ELEMENTS (IDs; removed ones are no longer in the graph):\n${data(inp.changed)}`);
+        sections.push(`CANDIDATE GRAPH:\n${data(inp.candidate)}`);
         sections.push(`RELEVANT ORIGINAL EVIDENCE:\n${manifest(inp.evidence, true, true)}`);
       } else {
-        sections.push(`CANDIDATE GRAPH:\n${json(inp.candidate)}`);
+        sections.push(`CANDIDATE GRAPH:\n${data(inp.candidate)}`);
         sections.push(`ORIGINAL EVIDENCE:\n${manifest(inp.evidence, true, true)}`);
       }
       break;
@@ -323,4 +340,27 @@ export function renderChatPacket(p: BuiltPrompt): string {
     ? `\n\nATTACH THESE FILES to the chat before sending:\n${p.images.map((i) => `- ${i.id}: ${attachmentLabel(i)}`).join("\n")}`
     : "";
   return `===== INSTRUCTIONS =====\n${p.system}\n\n===== ${p.user}${attach}\n\n===== END =====\nReply with the JSON object only.`;
+}
+
+// Copilot Chat fallback only: Copilot rejects a message over its character limit (128,000 on the
+// work tier). The default leaves room for anything the analyst types alongside. Set
+// CHAT_PROMPT_MAX_CHARS in .env to change it. API mode never uses this.
+export const CHAT_PROMPT_MAX_CHARS = Number(process.env.CHAT_PROMPT_MAX_CHARS) || 120_000;
+
+/**
+ * Copilot Chat fallback: the chat packet, shrunk step by step until it fits in one message.
+ * 1. Leave out input fields that hold their schema default (null, [], origin "source_extracted").
+ * 2. Also leave out upstream bookkeeping the agent does not need: original wording (source_label)
+ *    and A3's change log. Code restores or keeps both, so nothing is lost from the result.
+ * Returns the smallest packet tried, with its length, even if it is still over the limit.
+ */
+export function buildChatPacket(role: Role, inp: PromptInputs, mode: PromptMode, max = CHAT_PROMPT_MAX_CHARS) {
+  let packet = "";
+  let prompt: BuiltPrompt | null = null;
+  for (const slim of [0, 1, 2] as const) {
+    prompt = buildPrompt(role, inp, mode, slim);
+    packet = renderChatPacket(prompt);
+    if (packet.length <= max) break;
+  }
+  return { prompt: prompt!, packet, chars: packet.length, max };
 }

@@ -42,7 +42,7 @@ export type Issue = {
  * schema: the JSON the pasted reply must match; "A3_PATCH" for the claim audit, "A4_PATCH" for an
  * A4 repair, otherwise the role. step: which pass of the role this is (missing on older saved runs).
  */
-export type ChatHandoff = { role: Role; step?: string; schema: Role | "A3_PATCH" | "A4_PATCH"; roleName: string; prompt: string; attachments: string[] };
+export type ChatHandoff = { role: Role; step?: string; schema: Role | "A3_PATCH" | "A4_PATCH"; roleName: string; prompt: string; chars?: number; maxChars?: number; attachments: string[] };
 
 export type JobError = { code: string; message: string; retryable: boolean; details?: unknown };
 
