@@ -141,7 +141,7 @@ export async function callAgent<K extends OutputKind>(
 ): Promise<{ output: Output<K>; requests: number; modelId: string; notes: string[] }> {
   const role = prompt.role;
   // A1–A4 (including the A4 repair patch) run in JSON mode; the reply is then parsed and validated below.
-  const { model, modelId } = getModel(provider, prompt.images.length > 0, role !== "A5");
+  const { model, modelId } = getModel(provider, role !== "A5");
   const messages = toMessages(prompt);
   // A3 rewrites the whole claim set, so it gets the long limit and no retry after a timeout.
   const longCall = role === "A3";

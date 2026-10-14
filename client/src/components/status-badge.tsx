@@ -35,6 +35,9 @@ const SEVERITY: Record<Severity, string> = {
   info: PILL.grey,
 };
 
+// "blocking" is the server's severity value; users see it as Critical.
+const SEVERITY_LABEL: Record<Severity, string> = { blocking: "Critical", review: "Review", info: "Info" };
+
 export function SeverityBadge({ severity }: { severity: Severity }) {
-  return <Badge className={cn(SEVERITY[severity], "capitalize")}>{severity}</Badge>;
+  return <Badge className={SEVERITY[severity]}>{SEVERITY_LABEL[severity]}</Badge>;
 }

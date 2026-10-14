@@ -10,6 +10,7 @@ import {
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { formatStepTime, useNow } from "@/components/elapsed-time";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -231,6 +232,7 @@ const CAPTION_TONE: Record<StepState, string> = {
 function StepCircle({ step, index }: { step: Step; index: number }) {
   return (
     <span
+      data-step-circle
       className={cn(
         "relative z-10 grid size-[38px] shrink-0 place-items-center rounded-full border-2 text-xs font-bold [&_svg]:size-4",
         CIRCLE[step.state],
@@ -241,17 +243,29 @@ function StepCircle({ step, index }: { step: Step; index: number }) {
   );
 }
 
-function StepItem({ step, index }: { step: Step; index: number }) {
+/**
+ * column: the step's grid column (the two readers share column 0), which decides its line in.
+ * Combine findings (column 1) takes its line from where the readers' lines merge, in the middle of
+ * the 16px column gap. Steps after the readers drop by --merge-offset so their circles sit level
+ * with that merge point (below lg only the first row does: the second row starts fresh).
+ */
+function StepItem({ step, index, column }: { step: Step; index: number; column: number }) {
   return (
-    <li className="relative flex flex-col items-center gap-1.5 text-center">
-      {index > 0 && (
+    <li
+      className={cn(
+        "relative flex flex-col items-center gap-1.5 text-center",
+        column > 0 && (column < 3 ? "mt-(--merge-offset)" : "lg:mt-(--merge-offset)"),
+      )}
+    >
+      {column > 0 && (
         <span
           aria-hidden
           className={cn(
-            "absolute top-[18px] right-1/2 h-0.5 w-full",
+            "absolute top-[18px] right-1/2 h-0.5",
+            column === 1 ? "-left-[9px]" : "w-full",
             CONNECTOR[step.state],
-            // Three per row below lg: the fourth step starts a new row, so it has no line in.
-            index === 3 && "max-lg:hidden",
+            // Three per row below lg: the fourth column starts a new row, so it has no line in.
+            column === 3 && "max-lg:hidden",
           )}
         />
       )}
@@ -262,6 +276,55 @@ function StepItem({ step, index }: { step: Step; index: number }) {
         {step.time && <span className="tabular-nums"> · {step.time}</span>}
       </small>
       <SubStepList substeps={step.substeps} />
+    </li>
+  );
+}
+
+/**
+ * Read text and Read diagrams run in parallel, so they share the first column. Each gets a line out
+ * to the centre of the 16px column gap (a 2px line at right: -9px spans 7-9px past the column);
+ * the two meet halfway between their circles, and Combine findings' own line
+ * in carries on from there. Read text's height depends on its passes, so the circle centres are
+ * measured, and onMerge reports the merge point (from the top of the box) for the other steps.
+ */
+function ParallelReaders({ text, diagrams, onMerge }: { text: Step; diagrams: Step; onMerge: (y: number) => void }) {
+  const boxRef = useRef<HTMLLIElement>(null);
+  const [centres, setCentres] = useState<{ a: number; b: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    const measure = () => {
+      const top = box.getBoundingClientRect().top + box.clientTop;
+      const [a, b] = [...box.querySelectorAll("[data-step-circle]")].map((c) => {
+        const r = c.getBoundingClientRect();
+        return Math.round(r.top + r.height / 2 - top);
+      });
+      setCentres((prev) => (prev?.a === a && prev?.b === b ? prev : { a, b }));
+      onMerge(Math.round((a + b) / 2) + box.clientTop);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [onMerge]);
+
+  const mid = centres && Math.round((centres.a + centres.b) / 2);
+  return (
+    <li ref={boxRef} className="relative">
+      <ol className="flex flex-col gap-y-[22px]">
+        <StepItem step={text} index={0} column={0} />
+        <StepItem step={diagrams} index={1} column={0} />
+      </ol>
+      {centres && mid != null && (
+        <>
+          {/* Text's line out and down to the merge point, then diagrams' line out and up to it. */}
+          <span aria-hidden className={cn("absolute left-1/2 -right-[9px] h-0.5", CONNECTOR[text.state])} style={{ top: centres.a - 1 }} />
+          <span aria-hidden className={cn("absolute -right-[9px] w-0.5", CONNECTOR[text.state])} style={{ top: centres.a - 1, height: mid - centres.a + 1 }} />
+          <span aria-hidden className={cn("absolute left-1/2 -right-[9px] h-0.5", CONNECTOR[diagrams.state])} style={{ top: centres.b - 1 }} />
+          <span aria-hidden className={cn("absolute -right-[9px] w-0.5", CONNECTOR[diagrams.state])} style={{ top: mid, height: centres.b - mid + 1 }} />
+        </>
+      )}
     </li>
   );
 }
@@ -406,6 +469,8 @@ export function PipelineStepper({ job }: { job: JobView }) {
   const live = !job.archived && (job.status === "running" || job.status === "awaiting_chat");
   const now = useNow(live);
   const steps = buildSteps(job, now);
+  // Where the readers' lines merge, from the top of the row; the other steps' circles centre on it.
+  const [mergeY, setMergeY] = useState<number | null>(null);
   const reading = job.status === "running" && (job.progress.next.length === 0 || job.progress.next[0] === "normalize");
   return (
     <div className="flex flex-col gap-5">
@@ -415,9 +480,14 @@ export function PipelineStepper({ job }: { job: JobView }) {
           Reading sources and building evidence…
         </p>
       )}
-      <ol className="grid grid-cols-3 gap-x-2 gap-y-[22px] lg:grid-cols-6">
-        {steps.map((step, i) => (
-          <StepItem key={step.key} step={step} index={i} />
+      <ol
+        className="grid grid-cols-3 gap-x-4 gap-y-[22px] lg:grid-cols-5"
+        // 19px: half a step circle, so the circle's centre (not its top) lands on the merge point.
+        style={{ "--merge-offset": `${mergeY == null ? 0 : Math.max(0, mergeY - 19)}px` } as React.CSSProperties}
+      >
+        <ParallelReaders text={steps[0]} diagrams={steps[1]} onMerge={setMergeY} />
+        {steps.slice(2).map((step, i) => (
+          <StepItem key={step.key} step={step} index={i + 2} column={i + 1} />
         ))}
       </ol>
       <RepairLoop job={job} now={now} />

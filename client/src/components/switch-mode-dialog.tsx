@@ -16,12 +16,9 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api";
-import type { JobView, Mode, Provider } from "@/lib/types";
+import { PROVIDER_NAMES, PROVIDER_OPTIONS, type JobView, type Mode, type Provider } from "@/lib/types";
 
-const PROVIDERS = [
-  { value: "gemini", label: "Gemini" },
-  { value: "qwen", label: "Qwen" },
-];
+const PROVIDERS = PROVIDER_OPTIONS;
 
 /**
  * POST /v1/jobs/:id/mode. Allowed when the job failed (retry on either route)
@@ -50,7 +47,7 @@ export function SwitchModeDialog({
     setBusy(true);
     try {
       await api.switchMode(job.id, target, target === "api" ? provider : undefined);
-      toast.success(target === "api" ? `Continuing with ${provider} API` : "Switched to Copilot Chat");
+      toast.success(target === "api" ? `Continuing with ${PROVIDER_NAMES[provider]} API` : "Switched to Copilot Chat");
       setOpen(false);
       onSwitched();
     } catch (e) {

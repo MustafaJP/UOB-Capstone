@@ -13,6 +13,7 @@ import {
   TriangleAlertIcon,
   WifiOffIcon,
 } from "lucide-react";
+import { CancelRunButton } from "@/components/cancel-run-button";
 import { Callout } from "@/components/callout";
 import { ChatHandoff } from "@/components/chat-handoff";
 import { ElapsedTime, formatDuration } from "@/components/elapsed-time";
@@ -28,9 +29,9 @@ import { useJob } from "@/hooks/use-job";
 import { useResolvedIssues } from "@/hooks/use-resolved-issues";
 import { api } from "@/lib/api";
 import { diagramHref } from "@/lib/diagram";
-import type { JobView } from "@/lib/types";
+import { PROVIDER_NAMES, type JobView } from "@/lib/types";
 
-const PROVIDER_NAME: Record<JobView["provider"], string> = { gemini: "Gemini", qwen: "Qwen" };
+const PROVIDER_NAME: Record<JobView["provider"], string> = PROVIDER_NAMES;
 const routeLabel = (job: Pick<JobView, "mode" | "provider">) =>
   job.mode === "api" ? `API · ${PROVIDER_NAME[job.provider] ?? job.provider}` : "Copilot Chat";
 
@@ -70,9 +71,8 @@ function doneSummary(job: JobView, isResolved: (index: number) => boolean): stri
 export function JobWorkspace() {
   const { id } = useParams<{ id: string }>();
   const { job, error, refresh } = useJob(id);
-  // The tab the user picked, remembered only for the result state it was picked in, so the
-  // default tab still applies when the result arrives.
-  const [picked, setPicked] = useState<{ withResult: boolean; tab: ResultTab } | null>(null);
+  // The results tab; Trace by default, and the user's pick is kept when the result arrives.
+  const [tab, setTab] = useState<ResultTab>("trace");
   const tabsRef = useRef<HTMLDivElement>(null);
   const { isResolved, toggle } = useResolvedIssues(job?.status === "done" ? job : null);
 
@@ -101,8 +101,7 @@ export function JobWorkspace() {
   }
 
   const result = job.result;
-  const tab: ResultTab = picked && picked.withResult === !!result ? picked.tab : result ? "issues" : "trace";
-  const setTab = (t: ResultTab) => setPicked({ withResult: !!result, tab: t });
+  const cancelled = job.error?.code === "CANCELLED";
   const openIssues = () => {
     setTab("issues");
     tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -136,13 +135,16 @@ export function JobWorkspace() {
           {!job.archived && job.status === "awaiting_chat" && (
             <SwitchModeDialog job={job} target="api" label="Switch to API" onSwitched={refresh} />
           )}
+          {(job.status === "running" || job.status === "awaiting_chat") && (
+            <CancelRunButton jobId={job.id} title={result?.graph?.title} onCancelled={refresh} />
+          )}
         </div>
       </div>
 
       <div className="flex flex-col gap-4">
         {job.archived && job.status !== "done" && (
           <Callout tone="blue" icon={<ArchiveIcon />} title="Saved snapshot">
-            The server restarted since this run {job.status === "failed" ? "failed" : "paused"}, so it can no longer be
+            The server restarted since this run {cancelled ? "was cancelled" : job.status === "failed" ? "failed" : "paused"}, so it can no longer be
             resumed. Start a new job from the same sources to continue.
           </Callout>
         )}
@@ -164,7 +166,9 @@ export function JobWorkspace() {
             tone="red"
             icon={<TriangleAlertIcon />}
             title={
-              job.error.retryable && job.mode === "api"
+              cancelled
+                ? "Run cancelled"
+                : job.error.retryable && job.mode === "api"
                 ? `${PROVIDER_NAME[job.provider] ?? job.provider} could not be reached`
                 : "A step could not finish"
             }
@@ -174,7 +178,7 @@ export function JobWorkspace() {
                   <SwitchModeDialog
                     job={job}
                     target="api"
-                    label="Retry via API"
+                    label={cancelled ? "Resume via API" : "Retry via API"}
                     variant="default"
                     icon={<RefreshCwIcon />}
                     onSwitched={refresh}
@@ -191,7 +195,9 @@ export function JobWorkspace() {
             }
           >
             <p>
-              {job.error.retryable
+              {cancelled
+                ? "You stopped this run. Resume it via API, or finish the remaining steps in Copilot Chat."
+                : job.error.retryable
                 ? "This looks temporary. Retry via API, or finish the remaining steps in Copilot Chat."
                 : "You can finish the remaining steps in Copilot Chat, or retry with another provider."}{" "}
               Finished steps are saved, so nothing is lost.

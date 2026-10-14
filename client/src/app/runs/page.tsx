@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DownloadIcon, PlusIcon, RefreshCwIcon, SearchIcon, Trash2Icon, TriangleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
+import { CancelRunButton } from "@/components/cancel-run-button";
 import { Callout } from "@/components/callout";
 import { FileTypeTile } from "@/components/file-dropzone";
 import { PILL, StatusBadge } from "@/components/status-badge";
@@ -14,7 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { JobStatus, RunSummary } from "@/lib/types";
+import { PROVIDER_NAMES, type JobStatus, type RunSummary } from "@/lib/types";
 
 /** "Just now", "12 min ago", "3 h ago", then a short date for anything older than a day. */
 function formatUpdated(iso: string): string {
@@ -46,7 +47,7 @@ function IssueCounts({ issues }: { issues: RunSummary["issues"] }) {
   if (!issues.blocking && !issues.review && !issues.info && !issues.resolved) return <span className="text-ink-3">None</span>;
   return (
     <div className="flex flex-wrap gap-1">
-      {issues.blocking > 0 && <Badge className={PILL.red}>{issues.blocking} blocking</Badge>}
+      {issues.blocking > 0 && <Badge className={PILL.red}>{issues.blocking} critical</Badge>}
       {issues.review > 0 && <Badge className={PILL.amber}>{issues.review} review</Badge>}
       {issues.info > 0 && <Badge className={PILL.grey}>{issues.info} info</Badge>}
       {!!issues.resolved && <Badge className={PILL.green}>✓ {issues.resolved} complete</Badge>}
@@ -219,7 +220,7 @@ export default function RunsPage() {
                     <TableCell>
                       <StatusBadge status={run.status} />
                     </TableCell>
-                    <TableCell>{run.mode === "api" ? `API · ${run.provider === "gemini" ? "Gemini" : "Qwen"}` : "Copilot Chat"}</TableCell>
+                    <TableCell>{run.mode === "api" ? `API · ${PROVIDER_NAMES[run.provider] ?? run.provider}` : "Copilot Chat"}</TableCell>
                     <TableCell>
                       <IssueCounts issues={run.issues} />
                     </TableCell>
@@ -239,6 +240,9 @@ export default function RunsPage() {
                           >
                             <DownloadIcon />
                           </Button>
+                        )}
+                        {(run.status === "running" || run.status === "awaiting_chat") && (
+                          <CancelRunButton jobId={run.id} title={run.title} onCancelled={() => setTick((t) => t + 1)} iconOnly />
                         )}
                         {run.status !== "running" && (
                           <Button

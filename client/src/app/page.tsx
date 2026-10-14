@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { Mode, Provider } from "@/lib/types";
+import { PROVIDER_OPTIONS, type Mode, type Provider } from "@/lib/types";
 
 const MODES: { value: Mode; label: string; hint: string }[] = [
   { value: "api", label: "API", hint: "Agents call the model" },
@@ -21,8 +21,7 @@ const MODES: { value: Mode; label: string; hint: string }[] = [
 
 const PROVIDERS = [
   { value: "default", label: "Server default" },
-  { value: "gemini", label: "Gemini" },
-  { value: "qwen", label: "Qwen" },
+  ...PROVIDER_OPTIONS,
 ];
 
 /** Two-option segmented control (the mockup's Route picker). */
@@ -145,13 +144,9 @@ export default function NewJobPage() {
                 <small className="text-xs text-ink-3">Copilot Chat runs each step in your own chat window.</small>
               )}
             </div>
-            <div className="flex gap-2.5 rounded-[10px] bg-warn-50 px-3 py-2.5 text-[12.5px] text-[#6e4a00]">
-              <ShieldIcon className="mt-px size-4 shrink-0" />
-              <span>Use approved or synthetic documents only. Nothing is final until a reviewer approves it.</span>
-            </div>
           </CardContent>
           <CardFooter className="flex-col items-stretch justify-between gap-3 border-line bg-[#fafafb] sm:flex-row sm:items-center">
-            <small className="text-ink-3">Est. 3–6 min</small>
+            <small className="text-ink-3">Est. 7–10 min</small>
             <Button type="submit" size="lg" disabled={!canSubmit}>
               <PlayIcon className="fill-current" />
               {submitting ? "Starting…" : "Generate diagram"}

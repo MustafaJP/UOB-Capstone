@@ -150,10 +150,12 @@
     @apply font-sans;
   }
 }
-/* Issue markers on the BPMN canvas (bpmn-modeler.tsx adds them). Blocking errors: solid red. */
+/* Issue markers on the BPMN canvas (bpmn-modeler.tsx adds them). Critical issues: dashed red with a
+   light red tint, styled like the amber review marker. */
 .djs-element.has-error .djs-visual > :is(rect, circle, polygon, path) {
   stroke: var(--color-uob-red) !important;
-  stroke-width: 3px !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 5 3;
 }
 .djs-element.has-error .djs-visual > :is(rect, circle, polygon) {
   fill: var(--color-uob-red-50) !important;

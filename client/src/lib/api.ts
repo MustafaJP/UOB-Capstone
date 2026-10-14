@@ -55,6 +55,7 @@ export const api = {
   listJobs: () => request<{ runs: RunSummary[] }>("/v1/jobs"),
   deleteJob: (id: string) => request<void>(`/v1/jobs/${encodeURIComponent(id)}`, { method: "DELETE" }),
   getJob: (id: string) => request<JobView>(`/v1/jobs/${encodeURIComponent(id)}`),
+  cancelJob: (id: string) => request<Accepted>(`/v1/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   resumeJob: (id: string, response: string) =>
     request<Accepted>(`/v1/jobs/${encodeURIComponent(id)}/resume`, json({ response })),
   switchMode: (id: string, mode: Mode, provider?: Provider) =>

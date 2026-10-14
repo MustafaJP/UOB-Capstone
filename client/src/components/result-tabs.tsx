@@ -1,14 +1,15 @@
 "use client";
 
+import { FullLogs } from "@/components/full-logs";
 import { IssuesTable } from "@/components/issues-table";
 import { PILL } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { stepOwner, type A4Graph, type JobView, type RefineChange } from "@/lib/types";
+import { stepOwner, type JobView } from "@/lib/types";
 
-export type ResultTab = "issues" | "graph" | "changes" | "evidence" | "trace";
+export type ResultTab = "issues" | "trace" | "logs";
 
 const Empty = ({ children }: { children: React.ReactNode }) => (
   <p className="py-10 text-center text-sm text-ink-3">{children}</p>
@@ -24,101 +25,6 @@ const PANEL = "overflow-x-auto rounded-b-[14px] border border-t-0 border-line bg
 
 const TRIGGER =
   "h-auto flex-none rounded-none border-0 border-b-2 border-transparent px-3.5 py-2.5 text-sm font-semibold text-ink-3 -mb-px after:hidden hover:text-ink data-active:border-brand data-active:text-brand data-active:shadow-none";
-
-const NODE_TYPE: Record<A4Graph["nodes"][number]["type"], string> = {
-  start: "Start",
-  end: "End",
-  task: "Task",
-  exclusive_gateway: "Decision",
-};
-
-function GraphView({ graph }: { graph: A4Graph }) {
-  const label = new Map(graph.nodes.map((n) => [n.id, n.label]));
-  return (
-    <div className="flex flex-col gap-6">
-      <h3 className="text-base font-bold text-navy">{graph.title}</h3>
-      <div className="grid gap-4 md:grid-cols-2">
-        {graph.lanes.map((lane) => {
-          const nodes = graph.nodes.filter((n) => n.lane_id === lane.id);
-          return (
-            <div key={lane.id} className="overflow-hidden rounded-xl border border-line">
-              <div className="flex items-center justify-between bg-navy px-3 py-2 text-white">
-                <span className="text-sm font-semibold">{lane.name}</span>
-                <span className="font-mono text-xs text-white/60">{lane.id}</span>
-              </div>
-              <ul className="divide-y">
-                {nodes.map((n) => (
-                  <li key={n.id} className="flex items-start gap-2 px-3 py-2 text-sm">
-                    <Badge variant="outline" className="mt-0.5">
-                      {NODE_TYPE[n.type]}
-                    </Badge>
-                    <span className="flex-1">{n.label}</span>
-                    {n.origin === "inferred" && <Badge className={PILL.amber}>inferred</Badge>}
-                    <span className="font-mono text-xs text-muted-foreground">{n.id}</span>
-                  </li>
-                ))}
-                {!nodes.length && <li className="px-3 py-2 text-sm text-muted-foreground">No nodes</li>}
-              </ul>
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex flex-col gap-2">
-        <h4 className="text-sm font-medium">Flows ({graph.edges.length})</h4>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-20">ID</TableHead>
-              <TableHead>From</TableHead>
-              <TableHead>To</TableHead>
-              <TableHead>Condition</TableHead>
-              <TableHead className="w-24">Origin</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {graph.edges.map((e) => (
-              <TableRow key={e.id}>
-                <TableCell className="font-mono text-xs">{e.id}</TableCell>
-                <TableCell className="whitespace-normal">{label.get(e.source_id) ?? e.source_id}</TableCell>
-                <TableCell className="whitespace-normal">{label.get(e.target_id) ?? e.target_id}</TableCell>
-                <TableCell className="whitespace-normal">{e.label ?? "-"}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{e.origin}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
-
-function ChangesTable({ changes }: { changes: RefineChange[] }) {
-  if (!changes.length) return <Empty>The refiner made no changes.</Empty>;
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-28">Type</TableHead>
-          <TableHead className="w-48">Upstream</TableHead>
-          <TableHead className="w-24">Result</TableHead>
-          <TableHead>Reason</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {changes.map((c, i) => (
-          <TableRow key={i}>
-            <TableCell>
-              <Badge variant="outline">{c.type}</Badge>
-            </TableCell>
-            <TableCell className="font-mono text-xs whitespace-normal">{c.upstream_ids.join(", ")}</TableCell>
-            <TableCell className="font-mono text-xs">{c.result_id ?? "-"}</TableCell>
-            <TableCell className="whitespace-normal">{c.reason}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
 
 export function ResultTabs({
   job,
@@ -148,19 +54,12 @@ export function ResultTabs({
           Issues
           {open.length > 0 && <Count n={open.length} tone={blocking ? "red" : "grey"} />}
         </TabsTrigger>
-        <TabsTrigger value="graph" className={TRIGGER}>
-          Graph
-        </TabsTrigger>
-        <TabsTrigger value="changes" className={TRIGGER}>
-          Refiner changes
-        </TabsTrigger>
-        <TabsTrigger value="evidence" className={TRIGGER}>
-          Evidence
-          {job.evidence.length > 0 && <Count n={job.evidence.length} />}
-        </TabsTrigger>
         <TabsTrigger value="trace" className={TRIGGER}>
           Trace
           {job.trace.length > 0 && <Count n={job.trace.length} />}
+        </TabsTrigger>
+        <TabsTrigger value="logs" className={TRIGGER}>
+          Full logs
         </TabsTrigger>
       </TabsList>
 
@@ -169,52 +68,13 @@ export function ResultTabs({
           <IssuesTable
             issues={result.issues}
             jobId={job.id}
+            evidence={job.evidence}
             graph={result.bpmnXml ? result.graph : null}
             isResolved={isResolved}
             onToggleResolved={onToggleResolved}
           />
         ) : (
           notReady
-        )}
-      </TabsContent>
-
-      <TabsContent value="graph" className={PANEL}>
-        {result?.graph ? <GraphView graph={result.graph} /> : result ? <Empty>No graph was produced.</Empty> : notReady}
-      </TabsContent>
-
-      <TabsContent value="changes" className={PANEL}>
-        {result ? <ChangesTable changes={result.changes} /> : notReady}
-      </TabsContent>
-
-      <TabsContent value="evidence" className={PANEL}>
-        {job.evidence.length ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-20">ID</TableHead>
-                <TableHead className="w-20">Kind</TableHead>
-                <TableHead className="w-56">Source</TableHead>
-                <TableHead>Excerpt</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {job.evidence.map((e) => (
-                <TableRow key={e.id}>
-                  <TableCell className="font-mono text-xs">{e.id}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{e.kind}</Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-normal">
-                    {e.source}
-                    {e.page != null && <span className="text-muted-foreground"> · p.{e.page}</span>}
-                  </TableCell>
-                  <TableCell className="text-xs whitespace-normal text-muted-foreground">{e.excerpt ?? "-"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          <Empty>No evidence yet.</Empty>
         )}
       </TabsContent>
 
@@ -256,6 +116,10 @@ export function ResultTabs({
         ) : (
           <Empty>No steps recorded yet.</Empty>
         )}
+      </TabsContent>
+
+      <TabsContent value="logs" className={PANEL}>
+        <FullLogs job={job} />
       </TabsContent>
     </Tabs>
   );

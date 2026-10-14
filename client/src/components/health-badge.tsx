@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
-import type { Health } from "@/lib/types";
+import { PROVIDER_NAMES, type Health } from "@/lib/types";
 
-const PROVIDER_NAME: Record<Health["provider"], string> = { gemini: "Gemini", qwen: "Qwen" };
+const PROVIDER_NAME: Record<Health["provider"], string> = PROVIDER_NAMES;
 
 /** Server reachability indicator; rechecks every 10 s. */
 export function HealthBadge({ onHealth, className }: { onHealth?: (h: Health | null) => void; className?: string }) {

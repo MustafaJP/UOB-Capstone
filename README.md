@@ -3,7 +3,7 @@
 The multi-agent backend from the FSD (`Process_Flow_Diagramming_FSD.docx`), cut down to hackathon size, plus a web frontend.
 It turns SOP text, PDFs and legacy diagram images into an **evidence-cited swimlane graph** and a **BPMN file** that bpmn-js can open.
 
-Stack: Node.js + TypeScript · **Next.js + shadcn/ui + Tailwind** (`client/`) · **bpmn-js** (diagram editor) · **Express.js** (`server/`) · **LangGraph.js** (orchestration) · **LangChain.js** (model calls) · zod (contracts) · Gemini or Qwen.
+Stack: Node.js + TypeScript · **Next.js + shadcn/ui + Tailwind** (`client/`) · **bpmn-js** (diagram editor) · **Express.js** (`server/`) · **LangGraph.js** (orchestration) · **LangChain.js** (model calls) · zod (contracts) · Gemini, Qwen, Mistral, Kimi or Llama.
 
 ## The agents
 
@@ -49,7 +49,7 @@ flowchart LR
   - **Structure errors join the loop.** After every A5 review, code runs the blocking graph checks (start/end events, lanes, dangling flows, duplicate IDs) and adds any failures as `STRUCT_*` findings, so A4 repairs them like critic findings. If a repair fixed only structure errors, the re-review is done in code with no model call.
   - **Drafts instead of nothing.** If blocking structure errors remain after the loop, the BPMN is still compiled as a draft (`result.draft: true`). Flows with missing ends and repeated IDs are left out and listed as `DRAFT_ELEMENTS_DROPPED`. The diagram page outlines the broken elements in red so the analyst can fix them in the editor and download the corrected `.bpmn`.
 - **Copilot Chat fallback**: the same graph pauses with LangGraph `interrupt()`, an analyst pastes the prompt into Copilot Chat and pastes the JSON back, and the graph resumes. Replies are validated before the graph moves on.
-- **Provider switch**: Gemini or Qwen, set per job.
+- **Provider switch**: Gemini, Qwen, Mistral, Kimi or Llama, set per job.
 - **Human stays in charge**: the output is a draft with an issue list. Nothing is ever "approved" by AI.
 
 ## Layout
@@ -66,7 +66,7 @@ Run everything from this folder (the workspace root).
 
 ```bash
 npm install
-cp server/.env.example server/.env          # add GOOGLE_API_KEY + GEMINI_MODEL (and/or the QWEN_* values)
+cp server/.env.example server/.env          # add GOOGLE_API_KEY + GEMINI_MODEL (and/or the QWEN_*, MISTRAL_*, KIMI_*, LLAMA_* values)
 cp client/.env.example client/.env.local    # NEXT_PUBLIC_API_URL, defaults to http://localhost:4000
 npm run typecheck                           # both workspaces
 npm run dev                                 # server on :4000 and client on :3000 together
@@ -100,7 +100,7 @@ In chat mode, each agent's prompt is written to `server/out/<name>.<role>.prompt
 |---|---|---|---|
 | GET | `/health` | | `{ ok, provider }` |
 | GET | `/v1/jobs` | | `{ runs: [{ id, title, sources, status, mode, provider, createdAt, updatedAt, issues, hasBpmn, archived }] }`, newest first |
-| POST | `/v1/jobs` | multipart `files` (up to 10, 20 MiB each) and/or `text`, `mode` (`api`/`chat`), `provider` (`gemini`/`qwen`) | `202 { jobId, status }` |
+| POST | `/v1/jobs` | multipart `files` (up to 10, 20 MiB each) and/or `text`, `mode` (`api`/`chat`), `provider` (`gemini`/`qwen`/`mistral`/`kimi`/`llama`) | `202 { jobId, status }` |
 | GET | `/v1/jobs/:id` | | `{ status, mode, provider, progress: { next, repairCount, maxRepairs, requestCount, maxRequests }, trace, evidence, stages: {a1..a5}, pending, error, result }` (`next` is the graph node running, paused or failed now) |
 | POST | `/v1/jobs/:id/resume` | `{ "response": "<JSON pasted from Copilot>" }` | `202`, or `422 CHAT_RESULT_INVALID` with field errors (the graph does not move on) |
 | POST | `/v1/jobs/:id/mode` | `{ "mode": "chat" \| "api", "provider"?: ... }` | `202`; continues a failed or paused job on the other route and keeps finished agents |
@@ -131,7 +131,7 @@ curl -o out.bpmn localhost:4000/v1/jobs/<jobId>/bpmn
 | `server/src/prompts.ts` | Shared rules plus A1–A5 role prompts, and the chat packet renderer |
 | `server/src/schemas.ts` | zod contracts for every agent's output |
 | `server/src/agents.ts` | Calls a model, validates its output, allows one format correction |
-| `server/src/llm.ts` | Gemini / Qwen adapters |
+| `server/src/llm.ts` | LangChain adapters: ChatGoogleGenerativeAI (Gemini), ChatMistralAI (Mistral), ChatOpenAI (Qwen, Kimi, Llama) |
 | `server/src/evidence.ts` | Splits input into citable evidence (text blocks, images, rendered PDF pages) |
 | `server/src/validate.ts` | Deterministic checks: A3 guard and graph rules |
 | `server/src/bpmn.ts` | Graph → BPMN 2.0 XML with lanes and layout |

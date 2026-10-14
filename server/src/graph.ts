@@ -86,7 +86,7 @@ async function runRole<K extends OutputKind>(
     };
     const resumed = interrupt(handoff);
     const output = OUTPUT_SCHEMAS[kind].parse(resumed) as (typeof OUTPUT_SCHEMAS)[K]["_output"];
-    const trace: TraceEntry = { role, step, provider: "copilot_chat", model: null, ms: 0, ok: true, note: "imported by analyst" };
+    const trace: TraceEntry = { role, step, provider: "copilot_chat", model: null, ms: 0, ok: true, note: "imported by analyst", output };
     return { output, requests: 1, trace };
   }
 
@@ -103,6 +103,7 @@ async function runRole<K extends OutputKind>(
     ms: Date.now() - t0,
     ok: true,
     note: notes.length ? notes.join("; ") : undefined,
+    output,
   };
   return { output, requests, trace };
 }
@@ -151,7 +152,7 @@ async function normalizeNode(s: S): Promise<Partial<S>> {
     stageIssues: issues,
     repairCount: 0,
     requestCount: 0, // adds nothing; the counter starts at 0
-    trace: [{ role: "system", step: "normalize", provider: "code", model: null, ms: Date.now() - t0, ok: true, note: `${texts} text blocks, ${evidence.length - texts} images${layoutNote}` }],
+    trace: [{ role: "system", step: "normalize", provider: "code", model: null, ms: Date.now() - t0, ok: true, note: `${texts} text blocks, ${evidence.length - texts} images${layoutNote}`, output: { evidence: evidence.map((e) => ({ id: e.id, kind: e.kind, source: e.source, page: e.page, chars: e.kind === "text" ? e.text.length : undefined })), layouts: layouts.map((l) => ({ id: l.id, source: l.source, page: l.page })), issues } }],
   };
 }
 
@@ -184,13 +185,13 @@ const passNote = (o: A1Output) => `${o.claims.length} claims, ${o.relations.leng
 async function a1DecisionsNode(s: S): Promise<Partial<S>> {
   const r = await runRole("A1", "A1", s, { evidence: s.evidence, layouts: s.layouts ?? [] }, "extract decisions", "decisions");
   const out = namespaceIds(r.output, "TD_");
-  return { a1Decisions: out, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out)) }] };
+  return { a1Decisions: out, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out)), output: out }] };
 }
 
 async function a1ActorsNode(s: S): Promise<Partial<S>> {
   const r = await runRole("A1", "A1", s, { evidence: s.evidence, layouts: s.layouts ?? [] }, "extract actors", "actors");
   const out = namespaceIds(r.output, "TA_");
-  return { a1Actors: out, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out)) }] };
+  return { a1Actors: out, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out)), output: out }] };
 }
 
 const textPasses = (s: S) => [s.a1, s.a1Decisions, s.a1Actors, s.a1Gaps].filter((o): o is A1Output => o != null);
@@ -224,7 +225,7 @@ function coverageNode(s: S): Partial<S> {
   const gaps = textBlocks ? uncitedBlocks(s, textPasses(s)) : [];
   return {
     gapBlocks: gaps.map((e) => e.id),
-    trace: [{ role: "system", step: "coverage check", provider: "code", model: null, ms: 0, ok: true, note: gaps.length ? `${gaps.length} of ${textBlocks} text blocks uncited: ${gaps.map((e) => e.id).join(", ")}` : `all procedure text cited (${textBlocks} blocks)` }],
+    trace: [{ role: "system", step: "coverage check", provider: "code", model: null, ms: 0, ok: true, note: gaps.length ? `${gaps.length} of ${textBlocks} text blocks uncited: ${gaps.map((e) => e.id).join(", ")}` : `all procedure text cited (${textBlocks} blocks)`, output: { textBlocks, uncited: gaps.map((e) => ({ id: e.id, text: e.kind === "text" ? e.text : "" })) } }],
   };
 }
 
@@ -243,7 +244,7 @@ async function gapFillNode(s: S): Promise<Partial<S>> {
   const stageIssues: Issue[] = still.length
     ? [{ code: "COVERAGE_UNCITED", severity: "info", message: `No extracted step cites these text blocks, even after a second read: ${still.map((e) => e.id).join(", ")}. Check they hold no process steps.`, element_ids: [], evidence_refs: still.map((e) => e.id) }]
     : [];
-  return { a1Gaps: out, stageIssues, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out), `${ids.size - still.length} of ${ids.size} gaps now cited`) }] };
+  return { a1Gaps: out, stageIssues, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, passNote(out), `${ids.size - still.length} of ${ids.size} gaps now cited`), output: { pass: out, stillUncited: still.map((e) => e.id) } }] };
 }
 
 async function a2Node(s: S): Promise<Partial<S>> {
@@ -271,12 +272,12 @@ async function a3Node(s: S): Promise<Partial<S>> {
   if (!hasImages(s) && a1 && textPasses(s).length === 1) {
     return {
       refined: refinedFromA1(a1),
-      trace: [{ role: "A3", step: "refine extraction", provider: "code", model: null, ms: 0, ok: true, note: "skipped: text-only input, A1 claims passed through" }],
+      trace: [{ role: "A3", step: "refine extraction", provider: "code", model: null, ms: 0, ok: true, note: "skipped: text-only input, A1 claims passed through", output: refinedFromA1(a1) }],
     };
   }
   const r = await runRole("A3", "A3", s, { evidence: s.evidence, a1, a2: s.a2 }, "refine extraction");
   const refined = withDerivedChanges(withSourceLabels(r.output, a1, s.a2), a1, s.a2);
-  return { refined, requestCount: r.requests, trace: [r.trace] };
+  return { refined, requestCount: r.requests, trace: [{ ...r.trace, output: { model: r.output, refined } }] };
 }
 
 // Change types A3 no longer writes: they follow from from_ids and aliases (see withDerivedChanges).
@@ -324,7 +325,7 @@ async function auditNode(s: S): Promise<Partial<S>> {
   if (!CLAIM_AUDIT || !s.refined) return {};
   const r = await runRole("A3", "A3_PATCH", s, { evidence: s.evidence, refined: s.refined }, "audit claims", "audit");
   const { refined, summary } = applyClaimPatch(s.refined, r.output);
-  return { refined, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, summary) }] };
+  return { refined, requestCount: r.requests, trace: [{ ...r.trace, note: joinNotes(r.trace.note, summary), output: { patch: r.output, refined } }] };
 }
 
 /**
@@ -349,7 +350,7 @@ function checkRefineNode(s: S): Partial<S> {
   const issues = checkRefine(mergedA1(s), s.a2, s.refined!, evidenceIds(s));
   return {
     stageIssues: issues,
-    trace: [{ role: "system", step: "check refine", provider: "code", model: null, ms: 0, ok: !issues.some((i) => i.severity === "blocking"), note: `${s.refined!.changes.length} changes, ${issues.length} issues` }],
+    trace: [{ role: "system", step: "check refine", provider: "code", model: null, ms: 0, ok: !issues.some((i) => i.severity === "blocking"), note: `${s.refined!.changes.length} changes, ${issues.length} issues`, output: { changes: s.refined!.changes, issues } }],
   };
 }
 
@@ -386,7 +387,7 @@ async function a4Node(s: S): Promise<Partial<S>> {
     unreviewedRepair: final,
     repairCount,
     requestCount: r.requests,
-    trace: [{ ...r.trace, note: joinNotes(r.trace.note, patched.summary, final ? "final repair, re-review skipped" : undefined) }],
+    trace: [{ ...r.trace, note: joinNotes(r.trace.note, patched.summary, final ? "final repair, re-review skipped" : undefined), output: { findings, patch: r.output, changedIds: patched.changedIds, graph: patched.graph } }],
   };
 }
 
@@ -440,7 +441,7 @@ async function a5Node(s: S): Promise<Partial<S>> {
   const fixNote = toFix
     ? `${toFix} findings to fix${structure.length ? ` (${structure.length} structure)` : ""}`
     : "no fixes needed";
-  const trace = { ...r.trace, note: joinNotes(r.trace.note, fixNote) };
+  const trace = { ...r.trace, note: joinNotes(r.trace.note, fixNote), output: critique };
   return { critique, requestCount: r.requests, trace: [trace] };
 }
 
@@ -500,7 +501,7 @@ function validateNode(s: S): Partial<S> {
     candidate: g,
     issues,
     compilable,
-    trace: [{ role: "system", step: "validate", provider: "code", model: null, ms: 0, ok: compilable, note: `${validation.length} validation issues` }],
+    trace: [{ role: "system", step: "validate", provider: "code", model: null, ms: 0, ok: compilable, note: `${validation.length} validation issues`, output: { compilable, validation, moved: placed.moved, removedLanes: placed.removedLanes, issues } }],
   };
 }
 
@@ -532,7 +533,7 @@ function compileNode(s: S): Partial<S> {
     bpmnXml: compileBpmn(graph),
     bpmnDraft: true,
     issues,
-    trace: [{ role: "system", step: "compile bpmn", provider: "code", model: null, ms: Date.now() - t0, ok: false, note: "draft: blocking structure errors must be fixed in the editor" }],
+    trace: [{ role: "system", step: "compile bpmn", provider: "code", model: null, ms: Date.now() - t0, ok: false, note: "draft: critical structure errors must be fixed in the editor" }],
   };
 }
 
@@ -561,8 +562,20 @@ function timed(name: string, fn: (s: S) => Partial<S> | Promise<Partial<S>>) {
     if (!nodes.size) started.delete(id);
     // Chat steps record 0 ms; their real time is handoff to pasted reply.
     if (out.trace) out.trace = out.trace.map((t) => (t.provider === "copilot_chat" ? { ...t, ms: Date.now() - t0 } : t));
+    for (const t of out.trace ?? []) logPass(id, t);
     return out;
   };
+}
+
+// Server console log of each pass. LOG_PASSES in .env: "summary" (default) one line per pass,
+// "full" also prints the pass output as JSON, "off" prints nothing. The same output is on the trace.
+const LOG_PASSES = process.env.LOG_PASSES ?? "summary";
+
+function logPass(jobId: string, t: TraceEntry) {
+  if (LOG_PASSES === "off") return;
+  const who = t.model ? `${t.provider}/${t.model}` : t.provider;
+  console.log(`[${jobId.slice(0, 8)}] ${t.role} ${t.step} · ${who} · ${(t.ms / 1000).toFixed(1)}s · ${t.ok ? "ok" : "FAILED"}${t.note ? ` · ${t.note}` : ""}`);
+  if (LOG_PASSES === "full" && t.output !== undefined) console.log(JSON.stringify(t.output, null, 2));
 }
 
 // ---------- routing ----------

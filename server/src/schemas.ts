@@ -255,4 +255,6 @@ export type TraceEntry = {
   ms: number;
   ok: boolean;
   note?: string;
+  /** What this pass produced (agent JSON, patch, or the values a code step computed), for developers to inspect. */
+  output?: unknown;
 };

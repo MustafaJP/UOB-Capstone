@@ -5,7 +5,7 @@ import multer from "multer";
 import { z } from "zod";
 import { AppError } from "./agents.js";
 import { defaultProvider, PROVIDERS } from "./llm.js";
-import { bpmnFor, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
+import { bpmnFor, cancelJob, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
 
 const app = express();
 app.use(cors());
@@ -15,7 +15,7 @@ app.use(express.json({ limit: "6mb" }));
 const upload = multer({ storage: multer.memoryStorage(), limits: { fieldSize: Infinity } });
 
 const ModeField = z.enum(["api", "chat"]).default("api");
-const ProviderField = z.enum(PROVIDERS as ["gemini", "qwen"]).optional();
+const ProviderField = z.enum(PROVIDERS).optional();
 
 const STATUS: Record<string, number> = {
   JOB_NOT_FOUND: 404,
@@ -25,6 +25,7 @@ const STATUS: Record<string, number> = {
   MODE_SWITCH_NOT_ALLOWED: 409,
   BPMN_NOT_READY: 409,
   RUN_BUSY: 409,
+  RUN_NOT_ACTIVE: 409,
   ISSUE_NOT_FOUND: 404,
   JOB_NOT_DONE: 409,
 };
@@ -62,6 +63,11 @@ app.get("/v1/jobs/:id", async (req, res) => {
 app.delete("/v1/jobs/:id", async (req, res) => {
   await removeRun(req.params.id);
   res.status(204).end();
+});
+
+// Stop a running (or chat-paused) job. It ends as failed with code CANCELLED and can be resumed by a mode switch.
+app.post("/v1/jobs/:id/cancel", async (req, res) => {
+  res.json({ jobId: req.params.id, status: await cancelJob(req.params.id) });
 });
 
 // Copilot Chat fallback: paste the JSON the chat returned for the pending agent.

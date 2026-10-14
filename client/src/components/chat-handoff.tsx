@@ -4,7 +4,6 @@ import { useState } from "react";
 import { CheckIcon, CopyIcon, PaperclipIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,15 +12,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
 import { ROLE_NAMES, type ChatHandoff as Handoff } from "@/lib/types";
 
-// The passes a role runs besides its main one, so the analyst knows which prompt this is.
-const PASS_BADGE: Record<string, string> = {
-  "extract decisions": "decisions",
-  "extract actors": "owners",
-  "fill coverage gaps": "missed text",
-  "audit claims": "audit",
-  "repair graph": "fix",
+// Names for the passes inside a step, matching the pipeline stepper, so the analyst knows which prompt this is.
+const PASS_NAMES: Record<string, string> = {
+  "extract text": "Steps",
+  "extract decisions": "Decisions",
+  "extract actors": "Owners",
+  "fill coverage gaps": "Coverage",
+  "refine extraction": "Merge",
+  "audit claims": "Audit against sources",
+  "repair graph": "Fix process flow",
+  "re-review": "Re-check fixes",
 };
-const passBadge = (p: Handoff) => (p.step ? PASS_BADGE[p.step] : p.schema === "A4_PATCH" ? "fix" : undefined);
+// Single-pass steps show only the step name; older saved runs carry no step.
+const promptTitle = (p: Handoff) => {
+  const pass = (p.step && PASS_NAMES[p.step]) || (p.schema === "A4_PATCH" ? PASS_NAMES["repair graph"] : undefined);
+  return pass ? `${ROLE_NAMES[p.role]} · ${pass} prompt` : `${ROLE_NAMES[p.role]} prompt`;
+};
 
 const PLACEHOLDER: Partial<Record<Handoff["schema"], string>> = {
   A3_PATCH: '{ "upsert_claims": [...], "changes": [...], ... }',
@@ -63,10 +69,7 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Step &ldquo;{ROLE_NAMES[pending.role]}&rdquo; needs a Copilot Chat result
-          {passBadge(pending) && <Badge variant="secondary">{passBadge(pending)}</Badge>}
-        </CardTitle>
+        <CardTitle>{promptTitle(pending)}</CardTitle>
         <CardDescription>
           Copy the prompt into Copilot Chat, attach the files listed below, then paste the JSON it returns.
         </CardDescription>

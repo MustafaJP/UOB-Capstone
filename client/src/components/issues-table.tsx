@@ -3,30 +3,95 @@ import { CheckIcon, CrosshairIcon, RotateCcwIcon } from "lucide-react";
 import { PILL, SeverityBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { diagramHref, issueTarget } from "@/lib/diagram";
-import type { A4Graph, Issue, Severity } from "@/lib/types";
+import type { A4Graph, EvidenceView, Issue, Severity } from "@/lib/types";
 
 const ORDER: Record<Severity, number> = { blocking: 0, review: 1, info: 2 };
 
 const Refs = ({ ids }: { ids: string[] }) =>
   ids.length ? <span className="font-mono text-xs">{ids.join(", ")}</span> : <span className="text-muted-foreground">-</span>;
 
+/** Short hover preview; the dialog shows the full text. */
+const preview = (text: string) => (text.length > 300 ? `${text.slice(0, 300)}… (click for full text)` : text);
+
+/** One evidence id; opens a dialog with the full source text it was picked from. */
+function EvidenceRef({ id, evidence }: { id: string; evidence?: EvidenceView }) {
+  if (!evidence) return <span className="font-mono text-xs">{id}</span>;
+  return (
+    <Dialog>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <DialogTrigger className="cursor-pointer rounded font-mono text-xs text-brand underline decoration-dotted underline-offset-2 hover:decoration-solid" />
+          }
+        >
+          {id}
+        </TooltipTrigger>
+        <TooltipContent className="block max-w-sm text-left leading-relaxed">
+          <span className="block font-semibold">
+            {evidence.source}
+            {evidence.page != null && <> · p.{evidence.page}</>}
+          </span>
+          <span className="mt-1 block whitespace-pre-wrap opacity-90">
+            {evidence.excerpt ? preview(evidence.excerpt) : "No excerpt recorded."}
+          </span>
+        </TooltipContent>
+      </Tooltip>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="font-mono">{evidence.id}</span>
+            <Badge variant="outline">{evidence.kind}</Badge>
+          </DialogTitle>
+          <DialogDescription>
+            {evidence.source}
+            {evidence.page != null && <> · p.{evidence.page}</>}
+          </DialogDescription>
+        </DialogHeader>
+        {evidence.excerpt ? (
+          <blockquote className="max-h-[60vh] overflow-y-auto border-l-2 border-brand bg-muted/40 py-2 pr-2 pl-3 text-sm whitespace-pre-wrap text-ink-2">
+            {evidence.excerpt}
+          </blockquote>
+        ) : (
+          <p className="text-sm text-muted-foreground">No excerpt was recorded for this evidence.</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EvidenceRefs({ ids, byId }: { ids: string[]; byId: Map<string, EvidenceView> }) {
+  if (!ids.length) return <span className="text-muted-foreground">-</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-x-1.5 gap-y-0.5">
+      {ids.map((id) => (
+        <EvidenceRef key={id} id={id} evidence={byId.get(id)} />
+      ))}
+    </span>
+  );
+}
+
 /**
  * All issues of a run, most severe first. Numbers (#1, #2…) follow the server's order, the same
  * numbers the diagram's issue panel shows. With a diagram (jobId + graph), issues that sit on it
  * link to the diagram page zoomed to them. With resolved/onToggleResolved, issues can be marked
- * complete (shown as Complete instead of their severity, and listed last).
+ * complete (shown as Complete instead of their severity, and listed last). With evidence, each
+ * evidence id opens a dialog showing the excerpt it was taken from.
  */
 export function IssuesTable({
   issues,
   jobId,
+  evidence = [],
   graph,
   isResolved = () => false,
   onToggleResolved,
 }: {
   issues: Issue[];
   jobId?: string;
+  evidence?: EvidenceView[];
   graph?: A4Graph | null;
   isResolved?: (index: number) => boolean;
   onToggleResolved?: (index: number) => void;
@@ -35,6 +100,7 @@ export function IssuesTable({
   const rank = (index: number, issue: Issue) => (isResolved(index) ? 3 : ORDER[issue.severity]);
   const sorted = issues.map((issue, index) => ({ issue, index })).sort((a, b) => rank(a.index, a.issue) - rank(b.index, b.issue));
   const linkable = !!jobId && !!graph;
+  const evidenceById = new Map(evidence.map((e) => [e.id, e]));
   return (
     <Table>
       <TableHeader>
@@ -62,7 +128,7 @@ export function IssuesTable({
               <Refs ids={issue.element_ids} />
             </TableCell>
             <TableCell className="whitespace-normal">
-              <Refs ids={issue.evidence_refs} />
+              <EvidenceRefs ids={issue.evidence_refs} byId={evidenceById} />
             </TableCell>
             {linkable && (
               <TableCell>

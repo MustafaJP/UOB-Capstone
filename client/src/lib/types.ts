@@ -2,7 +2,17 @@
 // Hand-written on purpose so the Next build never imports from the server workspace.
 
 export type Mode = "api" | "chat";
-export type Provider = "gemini" | "qwen";
+export type Provider = "gemini" | "qwen" | "mistral" | "kimi" | "llama";
+
+/** Display names for the API providers, in the order the pickers list them. */
+export const PROVIDER_NAMES: Record<Provider, string> = {
+  gemini: "Gemini",
+  qwen: "Qwen",
+  mistral: "Mistral",
+  kimi: "Kimi",
+  llama: "Llama",
+};
+export const PROVIDER_OPTIONS = Object.entries(PROVIDER_NAMES).map(([value, label]) => ({ value: value as Provider, label }));
 export type JobStatus = "running" | "awaiting_chat" | "done" | "failed";
 export type Role = "A1" | "A2" | "A3" | "A4" | "A5";
 export type Severity = "blocking" | "review" | "info";
@@ -44,6 +54,8 @@ export type TraceEntry = {
   ms: number;
   ok: boolean;
   note?: string;
+  /** What the pass produced, for developers. Missing on runs saved before it was recorded. */
+  output?: unknown;
 };
 
 export type EvidenceView = {

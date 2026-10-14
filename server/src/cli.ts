@@ -17,7 +17,7 @@ const flag = (name: string) => {
 const mode = (flag("mode") ?? "api") as Mode;
 const provider = (flag("provider") ?? defaultProvider()) as Provider;
 if (!args.length) {
-  console.error("Usage: npm run demo -- <file.txt|.pdf|.png|.jpg ...> [--mode chat] [--provider gemini|qwen]");
+  console.error("Usage: npm run demo -- <file.txt|.pdf|.png|.jpg ...> [--mode chat] [--provider gemini|qwen|mistral|kimi|llama]");
   process.exit(1);
 }
 

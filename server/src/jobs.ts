@@ -28,6 +28,10 @@ export type Job = {
 // In-memory job store (FSD uses Postgres; enough for a single-process demo).
 const jobs = new Map<string, Job>();
 const cfg = (id: string) => ({ configurable: { thread_id: id } });
+// Jobs with a graph call in flight: the abort switch for Cancel, and the promise that settles the job.
+const inFlight = new Map<string, { controller: AbortController; settled: Promise<void> }>();
+
+const cancelled = () => new AppError("CANCELLED", "The run was cancelled before it finished", true);
 
 export function getJob(id: string): Job {
   const job = jobs.get(id);
@@ -35,22 +39,72 @@ export function getJob(id: string): Job {
   return job;
 }
 
-async function advance(job: Job, input: unknown): Promise<void> {
+function advance(job: Job, input: unknown): Promise<void> {
+  const controller = new AbortController();
+  const settled = run(job, input, controller.signal).finally(() => inFlight.delete(job.id));
+  inFlight.set(job.id, { controller, settled });
+  return settled;
+}
+
+async function run(job: Job, input: unknown, signal: AbortSignal): Promise<void> {
   job.status = "running";
   job.error = null;
   job.updatedAt = new Date().toISOString();
   try {
-    await graph.invoke(input as never, cfg(job.id));
+    // The signal stops the graph scheduling further steps. A model call already in flight cannot be
+    // stopped (the Gemini SDK ignores it), so also stop waiting for it; its reply is discarded.
+    const aborted = new Promise<never>((_, reject) => signal.addEventListener("abort", () => reject(cancelled()), { once: true }));
+    await Promise.race([graph.invoke(input as never, { ...cfg(job.id), signal }), aborted]);
     const snap = await graph.getState(cfg(job.id));
     const interrupts = snap.tasks.flatMap((t) => t.interrupts ?? []);
     job.pending = interrupts.length ? (interrupts[0].value as ChatHandoff) : null;
     job.status = job.pending ? "awaiting_chat" : "done";
   } catch (e) {
-    const err = e instanceof AppError ? e : new AppError("INTERNAL", (e as Error).message ?? String(e));
+    const err = signal.aborted ? cancelled() : e instanceof AppError ? e : new AppError("INTERNAL", (e as Error).message ?? String(e));
     clearRunning(job.id);
     job.status = "failed";
     job.error = { code: err.code, message: err.message, retryable: err.retryable, details: err.details };
   }
+  job.updatedAt = new Date().toISOString();
+  await persist(job);
+}
+
+/**
+ * Stop a running job, or one paused for a chat result. It ends as failed with code CANCELLED, so
+ * finished steps are kept and it can be resumed later through a mode switch, like any failed job.
+ */
+export async function cancelJob(id: string): Promise<string> {
+  const job = jobs.get(id);
+  if (!job) {
+    // A saved run left running or paused by a server restart can never finish; cancelling just closes it.
+    const saved = await loadRun(id);
+    if (!saved) throw new AppError("JOB_NOT_FOUND", `No job ${id}`);
+    if (saved.status !== "running" && saved.status !== "awaiting_chat") {
+      throw new AppError("RUN_NOT_ACTIVE", `Cannot cancel a job that is ${saved.status}`);
+    }
+    const err = cancelled();
+    Object.assign(saved, { status: "failed", pending: null, updatedAt: new Date().toISOString() });
+    saved.error = { code: err.code, message: err.message, retryable: err.retryable };
+    await saveRun(saved);
+    return saved.status;
+  }
+  await cancelLive(job);
+  return job.status;
+}
+
+async function cancelLive(job: Job): Promise<void> {
+  const active = inFlight.get(job.id);
+  if (active) {
+    active.controller.abort();
+    await active.settled;
+    return;
+  }
+  if (job.status !== "awaiting_chat") throw new AppError("RUN_NOT_ACTIVE", `Cannot cancel a job that is ${job.status}`);
+  const err = cancelled();
+  clearRunning(job.id);
+  job.pending = null;
+  job.status = "failed";
+  job.error = { code: err.code, message: err.message, retryable: err.retryable };
   job.updatedAt = new Date().toISOString();
   await persist(job);
 }
@@ -128,7 +182,7 @@ export async function jobView(job: Job) {
       kind: e.kind,
       source: e.source,
       page: e.page,
-      excerpt: e.kind === "text" ? e.text.slice(0, 300) : undefined,
+      excerpt: e.kind === "text" ? e.text : undefined,
     })).concat(
       (v.layouts ?? []).map((l: any) => ({
         id: l.id,

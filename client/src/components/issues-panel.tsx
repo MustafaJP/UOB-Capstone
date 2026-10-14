@@ -10,7 +10,7 @@ import type { IssueTarget } from "@/lib/diagram";
 import type { A4Graph, EvidenceView, Issue, Severity } from "@/lib/types";
 
 const SEVERITY: Record<Severity, { label: string; pill: string }> = {
-  blocking: { label: "Blocking", pill: PILL.red },
+  blocking: { label: "Critical", pill: PILL.red },
   review: { label: "Review", pill: PILL.amber },
   info: { label: "Info", pill: PILL.grey },
 };
@@ -175,7 +175,7 @@ export function IssuesPanel({
                   : done
                     ? "border-[#bfe3cf] bg-ok-50/50"
                     : issue.severity === "blocking"
-                      ? "border-[#f3c6c8]"
+                      ? "border-[#f3c6c8] bg-uob-red-50/60"
                       : issue.severity === "review"
                         ? "border-[#f0c27a] bg-warn-50/60"
                         : "border-line",
