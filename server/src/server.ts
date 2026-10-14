@@ -5,7 +5,7 @@ import multer from "multer";
 import { z } from "zod";
 import { AppError } from "./agents.js";
 import { defaultProvider, PROVIDERS } from "./llm.js";
-import { bpmnFor, cancelJob, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
+import { attachmentFor, bpmnFor, cancelJob, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
 
 const app = express();
 app.use(cors());
@@ -27,6 +27,7 @@ const STATUS: Record<string, number> = {
   RUN_BUSY: 409,
   RUN_NOT_ACTIVE: 409,
   ISSUE_NOT_FOUND: 404,
+  ATTACHMENT_NOT_FOUND: 404,
   JOB_NOT_DONE: 409,
 };
 
@@ -93,6 +94,13 @@ app.put("/v1/jobs/:id/issues/:index", async (req, res) => {
   const body = z.object({ resolved: z.boolean() }).safeParse(req.body ?? {});
   if (!body.success) throw new AppError("BAD_REQUEST", "Body must be { resolved: boolean }");
   res.json({ resolved: await setIssueResolved(req.params.id, Number(req.params.index), body.data.resolved) });
+});
+
+// Copilot Chat fallback: download an image the pending prompt asks to attach (e.g. a rendered PDF page).
+app.get("/v1/jobs/:id/attachments/:imageId", async (req, res) => {
+  const file = await attachmentFor(req.params.id, req.params.imageId);
+  if (!file) throw new AppError("ATTACHMENT_NOT_FOUND", `No image ${req.params.imageId} in this job`);
+  res.type(file.mime).attachment(file.name).send(file.data);
 });
 
 app.get("/v1/jobs/:id/bpmn", async (req, res) => {

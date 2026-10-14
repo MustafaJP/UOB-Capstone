@@ -66,4 +66,6 @@ export const api = {
       method: "PUT",
     }),
   bpmnUrl: (id: string) => `${API_URL}/v1/jobs/${encodeURIComponent(id)}/bpmn`,
+  attachmentUrl: (id: string, imageId: string) =>
+    `${API_URL}/v1/jobs/${encodeURIComponent(id)}/attachments/${encodeURIComponent(imageId)}`,
 };

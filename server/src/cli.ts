@@ -4,7 +4,7 @@ import { basename, extname } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { AppError } from "./agents.js";
 import type { InputFile } from "./evidence.js";
-import { createJob, jobView, resumeJob, type Mode } from "./jobs.js";
+import { attachmentFor, createJob, jobView, resumeJob, type Mode } from "./jobs.js";
 import { defaultProvider, type Provider } from "./llm.js";
 import type { A4Graph, Issue, TraceEntry } from "./schemas.js";
 
@@ -51,7 +51,16 @@ while (job.status === "awaiting_chat" && job.pending) {
   writeFileSync(promptFile, p.prompt);
   console.log(`\n${c.bold}⏸  Copilot Chat handoff: ${p.role} ${p.roleName}${c.reset}`);
   console.log(`  1. Open ${promptFile} and paste it into a NEW Copilot Chat conversation.`);
-  if (p.attachments.length) console.log(`  2. Attach: ${p.attachments.join("; ")}`);
+  if (p.attachments.length) {
+    const saved: string[] = [];
+    for (const a of p.attachments) {
+      const file = await attachmentFor(job.id, a.split(":")[0]);
+      if (!file) continue;
+      writeFileSync(`out/${name}.${file.name}`, file.data);
+      saved.push(`out/${name}.${file.name}`);
+    }
+    console.log(`  2. Attach: ${saved.length ? saved.join(", ") : p.attachments.join("; ")}`);
+  }
   console.log(`  ${p.attachments.length ? 3 : 2}. Save Copilot's JSON reply to ${responseFile}`);
   await rl.question(`  Press Enter when the response file is saved… `);
   let raw: string;

@@ -279,6 +279,24 @@ export async function setIssueResolved(id: string, index: number, resolved: bool
   return saved.resolved;
 }
 
+/**
+ * An image a chat handoff asks the analyst to attach (IMG* evidence or P* layout view), so rendered
+ * PDF pages can be downloaded instead of screenshotted. Only live jobs hold the images in memory.
+ */
+export async function attachmentFor(id: string, imageId: string): Promise<{ name: string; mime: string; data: Buffer } | null> {
+  const job = getJob(id);
+  const v = (await graph.getState(cfg(job.id))).values as Record<string, any>;
+  const all: { id: string; source: string; page: number | null; mime: string; base64: string }[] = [
+    ...(v.evidence ?? []).filter((e: { kind: string }) => e.kind === "image"),
+    ...(v.layouts ?? []),
+  ];
+  const img = all.find((i) => i.id === imageId);
+  if (!img) return null;
+  const ext = img.mime.split("/")[1] ?? "png";
+  const stem = img.source.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "_");
+  return { name: `${img.id}_${stem}${img.page ? `_p${img.page}` : ""}.${ext}`, mime: img.mime, data: Buffer.from(img.base64, "base64") };
+}
+
 export async function bpmnFor(id: string): Promise<string | null> {
   const job = jobs.get(id);
   if (!job) {

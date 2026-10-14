@@ -312,9 +312,9 @@ export function buildPrompt(role: Role, inp: PromptInputs, mode: PromptMode = "f
   return { role, kind, system, user, images: sent };
 }
 
-/** How the analyst finds an image to attach. Rendered PDF pages (IMG pages, P layout views) need a screenshot. */
+/** How the analyst finds an image to attach. Rendered PDF pages (IMG pages, P layout views) are downloadable from the job page. */
 export function attachmentLabel(i: PromptImage): string {
-  return i.page ? `${i.source} page ${i.page} (screenshot of that page)` : i.source;
+  return i.page ? `${i.source} page ${i.page} (rendered page image)` : i.source;
 }
 
 // One copy-pasteable packet for the Copilot Chat fallback: same instructions, same schema.

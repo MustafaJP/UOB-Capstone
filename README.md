@@ -90,7 +90,7 @@ npm run demo -- fixtures/tt-intake.txt --mode chat        # Copilot Chat handoff
 
 The CLI prints the agent trace, A3's changes, the graph by lane and the issues for review. It writes `server/out/<name>.result.json` and `server/out/<name>.bpmn`; drag the `.bpmn` file onto https://demo.bpmn.io to see the swimlanes.
 
-In chat mode, each agent's prompt is written to `server/out/<name>.<role>.prompt.txt`. Paste it into a new Copilot Chat conversation, save the reply to `server/out/<name>.<role>.response.json`, then press Enter.
+In chat mode, each agent's prompt is written to `server/out/<name>.<role>.prompt.txt`. Paste it into a new Copilot Chat conversation, attach any page images it lists (written to `server/out/<name>.<IMG|P><n>_*.png`), save the reply to `server/out/<name>.<role>.response.json`, then press Enter.
 
 ## HTTP API (for the frontend)
 
@@ -104,6 +104,7 @@ In chat mode, each agent's prompt is written to `server/out/<name>.<role>.prompt
 | GET | `/v1/jobs/:id` | | `{ status, mode, provider, progress: { next, repairCount, maxRepairs, requestCount, maxRequests }, trace, evidence, stages: {a1..a5}, pending, error, result }` (`next` is the graph node running, paused or failed now) |
 | POST | `/v1/jobs/:id/resume` | `{ "response": "<JSON pasted from Copilot>" }` | `202`, or `422 CHAT_RESULT_INVALID` with field errors (the graph does not move on) |
 | POST | `/v1/jobs/:id/mode` | `{ "mode": "chat" \| "api", "provider"?: ... }` | `202`; continues a failed or paused job on the other route and keeps finished agents |
+| GET | `/v1/jobs/:id/attachments/:imageId` | | PNG of an image the pending prompt asks to attach (e.g. a rendered PDF page), or `404 ATTACHMENT_NOT_FOUND`; live jobs only |
 | GET | `/v1/jobs/:id/bpmn` | | BPMN XML file, or `409 BPMN_NOT_READY` |
 | DELETE | `/v1/jobs/:id` | | `204`; removes the run from memory and history, or `409 RUN_BUSY` while it runs |
 
@@ -146,7 +147,7 @@ Next.js 16 (App Router, `cacheComponents` on) with shadcn/ui (Base UI) and Tailw
 
 - **New job** (`/`): file drop built on the shadcn `attachment` component, optional pasted text, mode and provider, and a server health badge.
 - **Previous runs** (`/runs`): every saved run with its sources, status, issue counts and start time. Open one, download its BPMN or delete it.
-- **Job page** (`/jobs/[id]`): polls every 2 s while running and shows the A1–A5 stepper. It has a Copilot Chat panel (copy the prompt, paste the JSON, with inline `422` field errors) and switches between API and chat when a job fails or pauses. Tabs show Issues, Graph, Refiner changes, Evidence and Trace. **Open in BPMN** opens the diagram in a new browser tab.
+- **Job page** (`/jobs/[id]`): polls every 2 s while running and shows the A1–A5 stepper. It has a Copilot Chat panel (copy the prompt, download the page images to attach, paste the JSON, with inline `422` field errors) and switches between API and chat when a job fails or pauses. Tabs show Issues, Graph, Refiner changes, Evidence and Trace. **Open in BPMN** opens the diagram in a new browser tab.
 - **Diagram page** (`/jobs/[id]/diagram`): the diagram full screen in the bpmn-js Modeler. Edit it, then download `.bpmn` or SVG, or reset it to the generated version; the page warns before you leave with edits you have not downloaded. A draft diagram shows its blocking errors above the canvas and outlines those elements in red.
 
 | File | Purpose |

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckIcon, CopyIcon, PaperclipIcon, SendIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, DownloadIcon, PaperclipIcon, SendIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -90,12 +90,21 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
 
         {pending.attachments.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Label>Attach these images in the chat</Label>
+            <Label>Download these images and attach them in the chat</Label>
             <ul className="flex flex-col gap-1 text-sm">
               {pending.attachments.map((a) => (
                 <li key={a} className="flex items-center gap-2 text-muted-foreground">
-                  <PaperclipIcon className="size-3.5" />
-                  {a}
+                  <PaperclipIcon className="size-3.5 shrink-0" />
+                  <span className="flex-1">{a}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    nativeButton={false}
+                    render={<a href={api.attachmentUrl(jobId, a.split(":")[0])} download />}
+                  >
+                    <DownloadIcon />
+                    Download
+                  </Button>
                 </li>
               ))}
             </ul>
