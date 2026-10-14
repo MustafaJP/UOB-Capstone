@@ -97,10 +97,10 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
                   variant="outline"
                   size="sm"
                   nativeButton={false}
-                  render={<a href={api.attachmentsZipUrl(jobId)} download />}
+                  render={<a href={api.attachmentsPdfUrl(jobId)} download />}
                 >
                   <DownloadIcon />
-                  Download all as .zip ({pending.attachments.length})
+                  Download all as one PDF ({pending.attachments.length})
                 </Button>
               )}
             </div>

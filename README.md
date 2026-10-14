@@ -104,7 +104,7 @@ In chat mode, each agent's prompt is written to `server/out/<name>.<role>.prompt
 | GET | `/v1/jobs/:id` | | `{ status, mode, provider, progress: { next, repairCount, maxRepairs, requestCount, maxRequests }, trace, evidence, stages: {a1..a5}, pending, error, result }` (`next` is the graph node running, paused or failed now) |
 | POST | `/v1/jobs/:id/resume` | `{ "response": "<JSON pasted from Copilot>" }` | `202`, or `422 CHAT_RESULT_INVALID` with field errors (the graph does not move on) |
 | POST | `/v1/jobs/:id/mode` | `{ "mode": "chat" \| "api", "provider"?: ... }` | `202`; continues a failed or paused job on the other route and keeps finished agents |
-| GET | `/v1/jobs/:id/attachments.zip` | | every image the pending prompt asks to attach, as one zip |
+| GET | `/v1/jobs/:id/attachments.pdf` | | every image the pending prompt asks to attach, one per page in a single PDF labelled with its ID (Copilot Chat takes only a few attachments) |
 | GET | `/v1/jobs/:id/attachments/:imageId` | | PNG of an image the pending prompt asks to attach (e.g. a rendered PDF page), or `404 ATTACHMENT_NOT_FOUND`; live jobs only |
 | GET | `/v1/jobs/:id/bpmn` | | BPMN XML file, or `409 BPMN_NOT_READY` |
 | DELETE | `/v1/jobs/:id` | | `204`; removes the run from memory and history, or `409 RUN_BUSY` while it runs |

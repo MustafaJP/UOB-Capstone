@@ -5,7 +5,7 @@ import multer from "multer";
 import { z } from "zod";
 import { AppError } from "./agents.js";
 import { defaultProvider, PROVIDERS } from "./llm.js";
-import { zip } from "./zip.js";
+import { imagesToPdf } from "./attachments-pdf.js";
 import { attachmentFor, bpmnFor, cancelJob, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
 
 const app = express();
@@ -97,13 +97,18 @@ app.put("/v1/jobs/:id/issues/:index", async (req, res) => {
   res.json({ resolved: await setIssueResolved(req.params.id, Number(req.params.index), body.data.resolved) });
 });
 
-// Copilot Chat fallback: every image the pending prompt asks to attach, as one zip.
-app.get("/v1/jobs/:id/attachments.zip", async (req, res) => {
+// Copilot Chat fallback: every image the pending prompt asks to attach, as one PDF (one page each),
+// since Copilot Chat accepts only a few attachments per message.
+app.get("/v1/jobs/:id/attachments.pdf", async (req, res) => {
   const job = getJob(req.params.id);
-  const ids = (job.pending?.attachments ?? []).map((a) => a.split(":")[0]);
-  const files = (await Promise.all(ids.map((i) => attachmentFor(job.id, i)))).filter((f) => f !== null);
-  if (!files.length) throw new AppError("ATTACHMENT_NOT_FOUND", "The pending prompt has no images to attach");
-  res.type("application/zip").attachment(`${job.pending!.role}_attachments.zip`).send(zip(files));
+  const images = [];
+  for (const a of job.pending?.attachments ?? []) {
+    const [id, ...rest] = a.split(":");
+    const file = await attachmentFor(job.id, id);
+    if (file) images.push({ id, label: rest.join(":").trim(), mime: file.mime, data: file.data });
+  }
+  if (!images.length) throw new AppError("ATTACHMENT_NOT_FOUND", "The pending prompt has no images to attach");
+  res.type("application/pdf").attachment(`${job.pending!.role}_attachments.pdf`).send(await imagesToPdf(images));
 });
 
 // Copilot Chat fallback: download an image the pending prompt asks to attach (e.g. a rendered PDF page).
