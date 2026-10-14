@@ -40,9 +40,11 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
   const [copied, setCopied] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
-  // The server shrinks the prompt to fit one Copilot message; older saved runs carry no counts.
+  // The server shrinks the prompt to fit one Copilot message, cutting source text if it must;
+  // older saved runs carry no counts.
   const chars = pending.chars ?? pending.prompt.length;
   const overLimit = pending.maxChars != null && chars > pending.maxChars;
+  const cut = pending.cutChars ?? 0;
 
   const copy = async () => {
     try {
@@ -98,6 +100,12 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
           {overLimit && (
             <p className="text-xs text-destructive">
               Still over Copilot&rsquo;s message limit after shrinking. Copilot may reject it: continue this step via API instead.
+            </p>
+          )}
+          {cut > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {cut.toLocaleString()} characters of source text were cut to fit Copilot&rsquo;s message limit. Cut blocks
+              end with &ldquo;rest of this block cut&rdquo;; continue this step via API to send the full text.
             </p>
           )}
         </div>

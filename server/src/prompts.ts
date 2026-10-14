@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AppError } from "./errors.js";
 import type { LayoutView } from "./evidence.js";
 import { OUTPUT_SCHEMAS, ROLE_NAMES, type Evidence, type OutputKind, type Role } from "./schemas.js";
 
@@ -347,20 +348,51 @@ export function renderChatPacket(p: BuiltPrompt): string {
 // CHAT_PROMPT_MAX_CHARS in .env to change it. API mode never uses this.
 export const CHAT_PROMPT_MAX_CHARS = Number(process.env.CHAT_PROMPT_MAX_CHARS) || 120_000;
 
+const CUT_MARK = " [... rest of this block cut to fit the message limit]";
+
+/** Evidence with every text block longer than `cap` cut to `cap` characters. Images are kept. */
+const capText = (evidence: Evidence[], cap: number): Evidence[] =>
+  evidence.map((e) => (e.kind === "text" && e.text.length > cap ? { ...e, text: e.text.slice(0, cap) + CUT_MARK } : e));
+
 /**
  * Copilot Chat fallback: the chat packet, shrunk step by step until it fits in one message.
  * 1. Leave out input fields that hold their schema default (null, [], origin "source_extracted").
  * 2. Also leave out upstream bookkeeping the agent does not need: original wording (source_label)
  *    and A3's change log. Code restores or keeps both, so nothing is lost from the result.
- * Returns the smallest packet tried, with its length, even if it is still over the limit.
+ * 3. Cut the source text: every text block is capped at one length, the longest that fits, so the
+ *    longest blocks lose the most and short ones stay whole. Block IDs stay, so they can still be cited.
+ * Only the source text is cut: the instructions, output schema and JSON reply rule are always whole.
+ * The returned packet is never over `max`; if it cannot fit even with all source text cut, this throws.
  */
 export function buildChatPacket(role: Role, inp: PromptInputs, mode: PromptMode, max = CHAT_PROMPT_MAX_CHARS) {
-  let packet = "";
-  let prompt: BuiltPrompt | null = null;
+  const render = (evidence: Evidence[], slim: Slim) => {
+    const prompt = buildPrompt(role, { ...inp, evidence }, mode, slim);
+    return { prompt, packet: renderChatPacket(prompt) };
+  };
   for (const slim of [0, 1, 2] as const) {
-    prompt = buildPrompt(role, inp, mode, slim);
-    packet = renderChatPacket(prompt);
-    if (packet.length <= max) break;
+    const r = render(inp.evidence, slim);
+    if (r.packet.length <= max) return { ...r, chars: r.packet.length, max, cutChars: 0 };
   }
-  return { prompt: prompt!, packet, chars: packet.length, max };
+
+  // Binary search for the largest cap that fits. Every candidate is measured, so the result always fits.
+  const lengths = inp.evidence.map((e) => (e.kind === "text" ? e.text.length : 0));
+  let lo = 0;
+  let hi = Math.max(0, ...lengths) - 1;
+  let fit: (ReturnType<typeof render> & { cap: number }) | null = null;
+  while (lo <= hi) {
+    const cap = (lo + hi) >> 1;
+    const r = render(capText(inp.evidence, cap), 2);
+    if (r.packet.length <= max) {
+      fit = { ...r, cap };
+      lo = cap + 1;
+    } else hi = cap - 1;
+  }
+  if (!fit) {
+    throw new AppError(
+      "PROMPT_TOO_LARGE",
+      `The ${role} prompt is over ${max.toLocaleString()} characters even with the source text cut. Raise CHAT_PROMPT_MAX_CHARS in .env or continue this step via API.`,
+    );
+  }
+  const cutChars = lengths.reduce((n, len) => n + Math.max(0, len - fit.cap), 0);
+  return { prompt: fit.prompt, packet: fit.packet, chars: fit.packet.length, max, cutChars };
 }

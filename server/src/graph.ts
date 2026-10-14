@@ -58,7 +58,8 @@ type S = typeof State.State;
 // schema: which output the pasted reply must match (A3_PATCH for the claim audit, A4_PATCH for a
 // repair, otherwise the role). step: which pass of the role this is, e.g. "extract decisions".
 // chars / maxChars: the prompt's length against Copilot's message limit (it is shrunk to fit when needed).
-export type ChatHandoff = { role: Role; step: string; schema: OutputKind; roleName: string; prompt: string; chars: number; maxChars: number; attachments: string[] };
+// cutChars: how many characters of source text were cut to make it fit (0 when none).
+export type ChatHandoff = { role: Role; step: string; schema: OutputKind; roleName: string; prompt: string; chars: number; maxChars: number; cutChars: number; attachments: string[] };
 
 /**
  * Run one specialist. API mode calls the provider; chat mode pauses the graph with interrupt()
@@ -87,11 +88,13 @@ async function runRole<K extends OutputKind>(
       prompt: chat.packet,
       chars: chat.chars,
       maxChars: chat.max,
+      cutChars: chat.cutChars,
       attachments: chat.prompt.images.map((i) => `${i.id}: ${attachmentLabel(i)}`),
     };
     const resumed = interrupt(handoff);
     const output = OUTPUT_SCHEMAS[kind].parse(resumed) as (typeof OUTPUT_SCHEMAS)[K]["_output"];
-    const trace: TraceEntry = { role, step, provider: "copilot_chat", model: null, ms: 0, ok: true, note: "imported by analyst", output };
+    const cutNote = chat.cutChars ? `${chat.cutChars.toLocaleString()} characters of source text cut to fit Copilot's limit` : undefined;
+    const trace: TraceEntry = { role, step, provider: "copilot_chat", model: null, ms: 0, ok: true, note: joinNotes("imported by analyst", cutNote), output };
     return { output, requests: 1, trace };
   }
 

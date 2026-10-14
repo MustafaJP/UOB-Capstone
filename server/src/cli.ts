@@ -52,7 +52,7 @@ while (job.status === "awaiting_chat" && job.pending) {
   console.log(`\n${c.bold}⏸  Copilot Chat handoff: ${p.role} ${p.roleName}${c.reset}`);
   console.log(`  1. Open ${promptFile} and paste it into a NEW Copilot Chat conversation.`);
   const size = `${p.chars.toLocaleString()} / ${p.maxChars.toLocaleString()} characters`;
-  console.log(p.chars > p.maxChars ? `${c.red}     ${size}: over Copilot's limit even after shrinking.${c.reset}` : `     ${size}`);
+  console.log(p.cutChars ? `${c.yellow}     ${size}: ${p.cutChars.toLocaleString()} characters of source text cut to fit.${c.reset}` : `     ${size}`);
   if (p.attachments.length) {
     const saved: string[] = [];
     for (const a of p.attachments) {
