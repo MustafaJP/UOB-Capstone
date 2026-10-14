@@ -51,6 +51,19 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
     }
   };
 
+  // One file per image, since Copilot takes them as separate attachments. Staggered so the browser
+  // does not drop rapid back-to-back downloads; it may still ask once to allow multiple downloads.
+  const downloadAll = () => {
+    pending.attachments.forEach((a, i) => {
+      setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = api.attachmentUrl(jobId, a.split(":")[0]);
+        link.download = "";
+        link.click();
+      }, i * 400);
+    });
+  };
+
   const submit = async () => {
     setSubmitting(true);
     setError(null);
@@ -90,7 +103,15 @@ export function ChatHandoff({ jobId, pending, onResumed }: { jobId: string; pend
 
         {pending.attachments.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Label>Download these images and attach them in the chat</Label>
+            <div className="flex items-center justify-between">
+              <Label>Download these images and attach them in the chat</Label>
+              {pending.attachments.length > 1 && (
+                <Button variant="outline" size="sm" onClick={downloadAll}>
+                  <DownloadIcon />
+                  Download all ({pending.attachments.length})
+                </Button>
+              )}
+            </div>
             <ul className="flex flex-col gap-1 text-sm">
               {pending.attachments.map((a) => (
                 <li key={a} className="flex items-center gap-2 text-muted-foreground">
