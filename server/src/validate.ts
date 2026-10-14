@@ -156,9 +156,10 @@ export function validateGraph(g: A4Graph, evidenceIds: Set<string>): { issues: I
     }
   }
 
-  // V07 evidence: every node and edge cites evidence, or is explicitly inferred
+  // V07 evidence: every node and edge cites evidence, or is explicitly inferred. Inferred elements
+  // are common and expected, so they are only noted (info); uncited ones still need review.
   for (const x of [...g.nodes, ...g.edges]) {
-    if (x.origin === "inferred") issues.push(issue("V07_INFERRED", "review", `${x.id} is inferred, not stated in the source`, [x.id]));
+    if (x.origin === "inferred") issues.push(issue("V07_INFERRED", "info", `${x.id} is inferred, not stated in the source`, [x.id]));
     else if (!x.evidence_refs.length) issues.push(issue("V07_NO_EVIDENCE", "review", `${x.id} cites no evidence`, [x.id]));
   }
 

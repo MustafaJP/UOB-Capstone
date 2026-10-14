@@ -5,12 +5,14 @@ import multer from "multer";
 import { z } from "zod";
 import { AppError } from "./agents.js";
 import { defaultProvider, PROVIDERS } from "./llm.js";
-import { bpmnFor, createJob, getJob, listRuns, removeRun, resumeJob, switchMode, viewFor } from "./jobs.js";
+import { bpmnFor, createJob, getJob, listRuns, removeRun, resumeJob, setIssueResolved, switchMode, viewFor } from "./jobs.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "6mb" }));
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024, files: 10 } });
+// No upload caps: any number of files of any size, and pasted text of any length (multer would
+// otherwise cap a text field at 1 MB). Files are held in memory while the job is created.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fieldSize: Infinity } });
 
 const ModeField = z.enum(["api", "chat"]).default("api");
 const ProviderField = z.enum(PROVIDERS as ["gemini", "qwen"]).optional();
@@ -23,6 +25,8 @@ const STATUS: Record<string, number> = {
   MODE_SWITCH_NOT_ALLOWED: 409,
   BPMN_NOT_READY: 409,
   RUN_BUSY: 409,
+  ISSUE_NOT_FOUND: 404,
+  JOB_NOT_DONE: 409,
 };
 
 app.get("/health", (_req, res) => {
@@ -32,7 +36,7 @@ app.get("/health", (_req, res) => {
 // Start a job: multipart (files + optional text) or JSON { text }.
 app.post("/v1/jobs", upload.array("files"), (req, res) => {
   const body = z
-    .object({ text: z.string().max(500_000).optional(), mode: ModeField, provider: ProviderField })
+    .object({ text: z.string().optional(), mode: ModeField, provider: ProviderField })
     .safeParse(req.body ?? {});
   if (!body.success) throw new AppError("BAD_REQUEST", "Invalid request", false, z.treeifyError(body.error));
   const files = ((req.files as Express.Multer.File[] | undefined) ?? []).map((f) => ({
@@ -76,6 +80,13 @@ app.post("/v1/jobs/:id/mode", (req, res) => {
   const job = getJob(req.params.id);
   void switchMode(job, body.data.mode, body.data.provider);
   res.status(202).json({ jobId: job.id, status: job.status, mode: job.mode });
+});
+
+// Mark an issue of a finished run complete, or reopen it. :index is the issue's position in result.issues.
+app.put("/v1/jobs/:id/issues/:index", async (req, res) => {
+  const body = z.object({ resolved: z.boolean() }).safeParse(req.body ?? {});
+  if (!body.success) throw new AppError("BAD_REQUEST", "Body must be { resolved: boolean }");
+  res.json({ resolved: await setIssueResolved(req.params.id, Number(req.params.index), body.data.resolved) });
 });
 
 app.get("/v1/jobs/:id/bpmn", async (req, res) => {

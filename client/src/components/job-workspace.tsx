@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/job-skeleton";
 import { useJob } from "@/hooks/use-job";
+import { useResolvedIssues } from "@/hooks/use-resolved-issues";
 import { api } from "@/lib/api";
 import { diagramHref } from "@/lib/diagram";
 import type { JobView } from "@/lib/types";
@@ -45,11 +46,11 @@ function BackLink() {
 }
 
 /** What the finished run produced, in one sentence: duration, diagram size and what needs review. */
-function doneSummary(job: JobView): string {
+function doneSummary(job: JobView, isResolved: (index: number) => boolean): string {
   const took = formatDuration(Date.parse(job.updatedAt) - Date.parse(job.createdAt));
   const graph = job.result?.graph;
   const issues = job.result?.issues ?? [];
-  const toCheck = issues.filter((i) => i.severity !== "info").length;
+  const toCheck = issues.filter((i, n) => i.severity !== "info" && !isResolved(n)).length;
   const parts = [`All agents finished in ${took}.`];
   if (graph) {
     const tasks = graph.nodes.filter((n) => n.type === "task").length;
@@ -70,9 +71,10 @@ export function JobWorkspace() {
   const { id } = useParams<{ id: string }>();
   const { job, error, refresh } = useJob(id);
   // The tab the user picked, remembered only for the result state it was picked in, so the
-  // Issues tab still opens by default when the result arrives.
+  // default tab still applies when the result arrives.
   const [picked, setPicked] = useState<{ withResult: boolean; tab: ResultTab } | null>(null);
   const tabsRef = useRef<HTMLDivElement>(null);
+  const { isResolved, toggle } = useResolvedIssues(job?.status === "done" ? job : null);
 
   if (!job) {
     if (error)
@@ -241,7 +243,7 @@ export function JobWorkspace() {
             {result.draft
               ? "The diagram still has structure errors that the automatic fixes could not resolve. The affected elements are outlined in red in the editor."
               : result.bpmnXml
-                ? doneSummary(job)
+                ? doneSummary(job, isResolved)
                 : "The graph has structural errors, so no BPMN was compiled. The Issues tab lists what went wrong."}
           </Callout>
         )}
@@ -254,7 +256,13 @@ export function JobWorkspace() {
       </div>
 
       <div ref={tabsRef} className="mt-[26px] scroll-mt-4">
-        <ResultTabs job={job} tab={tab} onTabChange={setTab} />
+        <ResultTabs
+          job={job}
+          tab={tab}
+          onTabChange={setTab}
+          isResolved={isResolved}
+          onToggleResolved={(index) => void toggle(index)}
+        />
       </div>
     </div>
   );

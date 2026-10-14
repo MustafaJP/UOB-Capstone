@@ -27,7 +27,8 @@ export type RunSummary = {
   provider: string;
   createdAt: string;
   updatedAt: string;
-  issues: { blocking: number; review: number; info: number } | null;
+  /** Open issues per severity, plus how many a reviewer marked complete. */
+  issues: { blocking: number; review: number; info: number; resolved: number } | null;
   hasBpmn: boolean;
   draft: boolean; // the BPMN was built despite blocking structure errors
   archived: boolean;
@@ -77,7 +78,9 @@ export async function listSavedRuns(): Promise<SavedRun[]> {
 
 export function summarize(view: SavedRun, archived: boolean): RunSummary {
   const issues: { severity: string }[] | undefined = view.result?.issues;
-  const count = (s: string) => issues?.filter((i) => i.severity === s).length ?? 0;
+  const resolved: Record<string, string> = view.resolved ?? {};
+  const open = issues?.filter((_, i) => !(i in resolved)) ?? [];
+  const count = (s: string) => open.filter((i) => i.severity === s).length;
   return {
     id: view.id,
     title: view.result?.graph?.title ?? view.stages?.a4?.title ?? null,
@@ -87,7 +90,9 @@ export function summarize(view: SavedRun, archived: boolean): RunSummary {
     provider: view.provider,
     createdAt: view.createdAt,
     updatedAt: view.updatedAt,
-    issues: issues ? { blocking: count("blocking"), review: count("review"), info: count("info") } : null,
+    issues: issues
+      ? { blocking: count("blocking"), review: count("review"), info: count("info"), resolved: issues.length - open.length }
+      : null,
     hasBpmn: !!view.result?.bpmnXml,
     draft: !!view.result?.draft,
     archived,

@@ -124,14 +124,19 @@ export function ResultTabs({
   job,
   tab,
   onTabChange,
+  isResolved,
+  onToggleResolved,
 }: {
   job: JobView;
   tab: ResultTab;
   onTabChange: (tab: ResultTab) => void;
+  isResolved: (index: number) => boolean;
+  onToggleResolved: (index: number) => void;
 }) {
   const result = job.result;
   const notReady = <Empty>Available when the job is done.</Empty>;
-  const blocking = result?.issues.filter((i) => i.severity === "blocking").length ?? 0;
+  const open = result?.issues.filter((_, n) => !isResolved(n)) ?? [];
+  const blocking = open.filter((i) => i.severity === "blocking").length;
 
   return (
     <Tabs value={tab} onValueChange={(v) => onTabChange(v as ResultTab)} className="gap-0">
@@ -141,7 +146,7 @@ export function ResultTabs({
       >
         <TabsTrigger value="issues" className={TRIGGER}>
           Issues
-          {result && result.issues.length > 0 && <Count n={result.issues.length} tone={blocking ? "red" : "grey"} />}
+          {open.length > 0 && <Count n={open.length} tone={blocking ? "red" : "grey"} />}
         </TabsTrigger>
         <TabsTrigger value="graph" className={TRIGGER}>
           Graph
@@ -160,7 +165,17 @@ export function ResultTabs({
       </TabsList>
 
       <TabsContent value="issues" className={PANEL}>
-        {result ? <IssuesTable issues={result.issues} /> : notReady}
+        {result ? (
+          <IssuesTable
+            issues={result.issues}
+            jobId={job.id}
+            graph={result.bpmnXml ? result.graph : null}
+            isResolved={isResolved}
+            onToggleResolved={onToggleResolved}
+          />
+        ) : (
+          notReady
+        )}
       </TabsContent>
 
       <TabsContent value="graph" className={PANEL}>

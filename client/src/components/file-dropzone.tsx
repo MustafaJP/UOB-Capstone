@@ -5,9 +5,7 @@ import { UploadIcon, XIcon } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// Mirrors the server's multer limits (server/src/server.ts).
-export const MAX_FILES = 10;
-export const MAX_BYTES = 20 * 1024 * 1024;
+// No file count or size limit (the server accepts any; see server/src/server.ts).
 const ACCEPT = ".txt,.pdf,image/*,text/plain,application/pdf";
 
 const isImage = (f: File) => f.type.startsWith("image/");
@@ -55,11 +53,7 @@ export function FileDropzone({ files, onChange }: { files: File[]; onChange: (fi
     const next = [...files];
     for (const f of Array.from(list)) {
       if (!accepted(f)) toast.error(`${f.name}: only .txt, .pdf and images are supported`);
-      else if (f.size > MAX_BYTES) toast.error(`${f.name} is larger than 20 MB`);
-      else if (next.length >= MAX_FILES) {
-        toast.error(`At most ${MAX_FILES} files per job`);
-        break;
-      } else if (!next.some((x) => x.name === f.name && x.size === f.size)) next.push(f);
+      else if (!next.some((x) => x.name === f.name && x.size === f.size)) next.push(f);
     }
     onChange(next);
   };
@@ -90,7 +84,7 @@ export function FileDropzone({ files, onChange }: { files: File[]; onChange: (fi
         </span>
         <b className="text-[15px] text-navy">Drop SOPs, process docs or flowchart images</b>
         <small className="text-ink-3">
-          or <u className="text-brand">browse files</u> · up to {MAX_FILES} files, 20 MB each
+          or <u className="text-brand">browse files</u> · any number of files
         </small>
         <span className="mt-1.5 flex flex-wrap justify-center gap-1.5">
           {[".pdf", ".txt", ".png / .jpg"].map((ext) => (

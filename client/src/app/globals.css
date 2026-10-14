@@ -150,11 +150,38 @@
     @apply font-sans;
   }
 }
-/* Elements with blocking errors in a draft diagram (bpmn-modeler.tsx adds the marker). */
+/* Issue markers on the BPMN canvas (bpmn-modeler.tsx adds them). Blocking errors: solid red. */
 .djs-element.has-error .djs-visual > :is(rect, circle, polygon, path) {
-  stroke: #dc2626 !important;
+  stroke: var(--color-uob-red) !important;
   stroke-width: 3px !important;
 }
 .djs-element.has-error .djs-visual > :is(rect, circle, polygon) {
-  fill: #fef2f2 !important;
+  fill: var(--color-uob-red-50) !important;
+}
+/* Items to review: dashed amber, as in the mockup's flagged step. */
+.djs-element.has-review .djs-visual > :is(rect, circle, polygon, path) {
+  stroke: var(--color-warn) !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 5 3;
+}
+.djs-element.has-review .djs-visual > :is(rect, circle, polygon) {
+  fill: var(--color-warn-50) !important;
+}
+/* The issue picked in the side panel: a blue outline and glow, drawn over the other markers. */
+.djs-element.is-focused .djs-visual > :is(rect, circle, polygon, path) {
+  stroke: var(--color-brand) !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: none;
+}
+.djs-element.is-focused .djs-visual {
+  filter: drop-shadow(0 0 6px rgb(43 78 162 / 0.45));
+}
+/* Around a focused issue: the rest of the diagram fades and its lane is tinted. (The box marking
+   the area is coloured in bpmn-modeler.tsx.) */
+.djs-element.is-dimmed .djs-visual {
+  opacity: 0.25;
+  transition: opacity 0.2s;
+}
+.djs-element.is-focus-lane .djs-visual > rect {
+  fill: var(--color-brand-50) !important;
 }

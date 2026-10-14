@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { Command } from "@langchain/langgraph";
 import { AppError, parseRoleOutput } from "./agents.js";
+import { compileBpmn } from "./bpmn.js";
 import type { JobInput } from "./evidence.js";
 import { clearRunning, graph, MAX_REPAIRS, MAX_REQUESTS, mergedA1, PASSES, runningSince, type ChatHandoff } from "./graph.js";
 import type { Provider } from "./llm.js";
 import { deleteRun, listSavedRuns, loadRun, saveRun, summarize, type RunSummary, type SavedRun } from "./runs.js";
+import { draftable } from "./validate.js";
 
 export type Mode = "api" | "chat";
 export type JobStatus = "running" | "awaiting_chat" | "done" | "failed";
@@ -19,6 +21,8 @@ export type Job = {
   updatedAt: string;
   pending: ChatHandoff | null;
   error: { code: string; message: string; retryable: boolean; details?: unknown } | null;
+  /** Issues a reviewer marked complete: index into result.issues → when (ISO time). */
+  resolved: Record<string, string>;
 };
 
 // In-memory job store (FSD uses Postgres; enough for a single-process demo).
@@ -64,7 +68,7 @@ async function persist(job: Job): Promise<void> {
 export function createJob(input: JobInput, mode: Mode, provider: Provider): { job: Job; done: Promise<void> } {
   const now = new Date().toISOString();
   const sources = [...(input.files ?? []).map((f) => f.name), ...(input.text?.trim() ? ["Pasted text"] : [])];
-  const job: Job = { id: randomUUID(), mode, provider, sources, status: "running", createdAt: now, updatedAt: now, pending: null, error: null };
+  const job: Job = { id: randomUUID(), mode, provider, sources, status: "running", createdAt: now, updatedAt: now, pending: null, error: null, resolved: {} };
   jobs.set(job.id, job);
   const done = advance(job, { input, mode, provider });
   return { job, done };
@@ -144,6 +148,24 @@ export async function jobView(job: Job) {
 }
 
 /**
+ * A saved run's diagram, laid out again with the current layout code, so runs saved before a layout
+ * change open (and download) with the new layout. It is built from the saved graph the way the job
+ * built it: a draft leaves out what cannot be drawn. The saved XML is used if there is no graph or
+ * the rebuild fails. Nothing is written back: the saved run keeps the XML it was saved with.
+ */
+function relayout(saved: SavedRun): string | null {
+  const xml: string | null = saved.result?.bpmnXml ?? null;
+  const graph = saved.result?.graph;
+  if (!xml || !graph) return xml;
+  try {
+    return compileBpmn(saved.result.draft ? draftable(graph).graph : graph);
+  } catch (e) {
+    console.error(`Could not re-lay out run ${saved.id}:`, (e as Error).message);
+    return xml;
+  }
+}
+
+/**
  * A live job's view, or the saved snapshot of a past run (from before a restart).
  * Saved runs come back with archived: true; they can be viewed but not resumed or switched.
  */
@@ -155,7 +177,7 @@ export async function viewFor(id: string): Promise<SavedRun> {
   // The checkpoint is gone, so a saved chat handoff can no longer be answered.
   // Runs saved while draw.io export existed still carry its XML; drop it.
   const { drawioXml: _, ...result } = (saved.result ?? {}) as NonNullable<SavedRun["result"]> & { drawioXml?: unknown };
-  return { ...saved, result: saved.result ? result : null, archived: true, pending: null };
+  return { ...saved, result: saved.result ? { ...result, bpmnXml: relayout(saved) } : null, archived: true, pending: null };
 }
 
 /** Run history, newest first: live jobs plus saved runs from earlier server sessions. */
@@ -175,9 +197,40 @@ export async function removeRun(id: string): Promise<void> {
   jobs.delete(id);
 }
 
+/**
+ * Mark one of a finished run's issues complete (or reopen it). Issues are addressed by their index
+ * in result.issues, which no longer changes once the job is done. Works on live jobs and saved runs.
+ */
+export async function setIssueResolved(id: string, index: number, resolved: boolean): Promise<Record<string, string>> {
+  const apply = (map: Record<string, string> | undefined, count: number) => {
+    if (!Number.isInteger(index) || index < 0 || index >= count) throw new AppError("ISSUE_NOT_FOUND", `No issue ${index} on job ${id}`);
+    const next = { ...(map ?? {}) };
+    if (resolved) next[index] = new Date().toISOString();
+    else delete next[index];
+    return next;
+  };
+  const job = jobs.get(id);
+  if (job) {
+    if (job.status !== "done") throw new AppError("JOB_NOT_DONE", "Issues can only be completed once the job is done");
+    const v = (await graph.getState(cfg(job.id))).values as Record<string, any>;
+    job.resolved = apply(job.resolved, (v.issues ?? v.stageIssues ?? []).length);
+    await persist(job);
+    return job.resolved;
+  }
+  const saved = await loadRun(id);
+  if (!saved) throw new AppError("JOB_NOT_FOUND", `No job ${id}`);
+  if (saved.status !== "done") throw new AppError("JOB_NOT_DONE", "Issues can only be completed once the job is done");
+  saved.resolved = apply(saved.resolved, saved.result?.issues?.length ?? 0);
+  await saveRun(saved);
+  return saved.resolved;
+}
+
 export async function bpmnFor(id: string): Promise<string | null> {
   const job = jobs.get(id);
-  if (!job) return (await loadRun(id))?.result?.bpmnXml ?? null;
+  if (!job) {
+    const saved = await loadRun(id);
+    return saved ? relayout(saved) : null;
+  }
   const v = (await graph.getState(cfg(job.id))).values as Record<string, any>;
   return v.bpmnXml ?? null;
 }

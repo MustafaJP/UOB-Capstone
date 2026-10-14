@@ -59,5 +59,10 @@ export const api = {
     request<Accepted>(`/v1/jobs/${encodeURIComponent(id)}/resume`, json({ response })),
   switchMode: (id: string, mode: Mode, provider?: Provider) =>
     request<Accepted & { mode: Mode }>(`/v1/jobs/${encodeURIComponent(id)}/mode`, json({ mode, provider })),
+  setIssueResolved: (id: string, index: number, resolved: boolean) =>
+    request<{ resolved: Record<string, string> }>(`/v1/jobs/${encodeURIComponent(id)}/issues/${index}`, {
+      ...json({ resolved }),
+      method: "PUT",
+    }),
   bpmnUrl: (id: string) => `${API_URL}/v1/jobs/${encodeURIComponent(id)}/bpmn`,
 };

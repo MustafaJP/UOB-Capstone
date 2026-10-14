@@ -4,11 +4,10 @@ import type { Evidence, Issue } from "./schemas.js";
 export type InputFile = { name: string; mime: string; data: Buffer };
 export type JobInput = { text?: string; files?: InputFile[] };
 
-const MAX_TEXT_CHARS = 60_000; // keeps one A1 call within a sensible context size
-const MAX_IMAGES = 6;
+// No caps on input size: every text block, image and table-page view is passed to the agents.
+// Very large inputs make longer, costlier model calls and can exceed the model's context window.
 const BLOCK_CHARS = 800;
 const MIN_PAGE_TEXT = 40; // pages with less text than this are treated as images
-const MAX_LAYOUT_VIEWS = 6;
 const TABLE_LINE_RUN = 6; // this many consecutive short lines on a text page suggests a table
 
 /**
@@ -54,29 +53,16 @@ function toBlocks(text: string): string[] {
 export async function normalize(input: JobInput): Promise<{ evidence: Evidence[]; layouts: LayoutView[]; issues: Issue[] }> {
   const evidence: Evidence[] = [];
   const layouts: LayoutView[] = [];
-  const skippedLayouts: string[] = [];
   const issues: Issue[] = [];
   let textCount = 0;
   let imageCount = 0;
-  let textChars = 0;
-  const skipped: string[] = [];
 
   const addText = (source: string, page: number | null, text: string) => {
     for (const block of toBlocks(text)) {
-      const id = `E${++textCount}`;
-      if (textChars + block.length > MAX_TEXT_CHARS) {
-        skipped.push(id);
-        continue;
-      }
-      textChars += block.length;
-      evidence.push({ id, kind: "text", source, page, text: block });
+      evidence.push({ id: `E${++textCount}`, kind: "text", source, page, text: block });
     }
   };
   const addImage = (source: string, page: number | null, mime: string, data: Buffer | Uint8Array) => {
-    if (imageCount >= MAX_IMAGES) {
-      skipped.push(`${source}${page ? ` p${page}` : ""}`);
-      return;
-    }
     evidence.push({ id: `IMG${++imageCount}`, kind: "image", source, page, mime, base64: Buffer.from(data).toString("base64") });
   };
 
@@ -92,13 +78,10 @@ export async function normalize(input: JobInput): Promise<{ evidence: Evidence[]
           if (page.text.trim().length >= MIN_PAGE_TEXT) {
             addText(file.name, page.num, page.text);
             if (looksTabular(page.text)) {
-              if (layouts.length >= MAX_LAYOUT_VIEWS) skippedLayouts.push(`${file.name} p${page.num}`);
-              else {
-                const shot = await pdf.getScreenshot({ partial: [page.num], desiredWidth: 1600, imageBuffer: true });
-                const data = shot.pages[0]?.data;
-                if (data) {
-                  layouts.push({ id: `P${layouts.length + 1}`, source: file.name, page: page.num, mime: "image/png", base64: Buffer.from(data).toString("base64") });
-                }
+              const shot = await pdf.getScreenshot({ partial: [page.num], desiredWidth: 1600, imageBuffer: true });
+              const data = shot.pages[0]?.data;
+              if (data) {
+                layouts.push({ id: `P${layouts.length + 1}`, source: file.name, page: page.num, mime: "image/png", base64: Buffer.from(data).toString("base64") });
               }
             }
           } else {
@@ -127,25 +110,6 @@ export async function normalize(input: JobInput): Promise<{ evidence: Evidence[]
     }
   }
 
-  // FSD rule: never truncate silently.
-  if (skipped.length) {
-    issues.push({
-      code: "SOURCE_INCOMPLETE",
-      severity: "blocking",
-      message: `Input exceeds the demo limits (${MAX_TEXT_CHARS} chars of text, ${MAX_IMAGES} images). Not processed: ${skipped.slice(0, 20).join(", ")}${skipped.length > 20 ? "…" : ""}. Narrow the scope and run again.`,
-      element_ids: [],
-      evidence_refs: [],
-    });
-  }
-  if (skippedLayouts.length) {
-    issues.push({
-      code: "LAYOUT_LIMIT",
-      severity: "info",
-      message: `More than ${MAX_LAYOUT_VIEWS} pages look like tables. Their text is still evidence, but these pages had no layout view, so table columns may be misread: ${skippedLayouts.join(", ")}.`,
-      element_ids: [],
-      evidence_refs: [],
-    });
-  }
   if (!evidence.length) {
     issues.push({
       code: "SOURCE_UNREADABLE",

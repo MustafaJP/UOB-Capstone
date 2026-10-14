@@ -4,8 +4,11 @@ import type { A4Graph } from "./schemas.js";
 // Layout: each lane is a band of rows and the longest-path rank is the column. Edges are routed
 // orthogonally; apart from short straight runs along an empty row or column, they travel through
 // the gap after each column and the gutter under each row, which hold no shapes and give every
-// edge its own track. Edge labels, gateway and event names and notes get explicit positions in
-// space reserved for them, so bpmn-js does not stack them on top of shapes or lines.
+// edge its own track. No two edges share a line: each edge also gets its own port on the side of
+// a shape it leaves or enters, and where one edge turns into a gap at the row another leaves it
+// from, their tracks are ordered so the two stubs cannot run over each other. Edge labels,
+// gateway and event names and notes get explicit positions in space reserved for them, so
+// bpmn-js does not stack them on top of shapes or lines.
 
 export const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -34,6 +37,14 @@ const TRACK = 12; // spacing between parallel lines in one gap or gutter
 const POOL_X = 40;
 const POOL_Y = 40;
 const LANE_HEADER = 30;
+// Ports: how far from the middle of a side an edge may attach (keeps clear of corners), and the
+// preferred spacing between neighbouring ports. Ports on diamonds and circles sit on the outline.
+const PORT: Record<GNode["type"], { side: number; bottom: number; spacing: number }> = {
+  task: { side: 30, bottom: 50, spacing: 12 },
+  exclusive_gateway: { side: 16, bottom: 16, spacing: 8 },
+  start: { side: 12, bottom: 12, spacing: 6 },
+  end: { side: 12, bottom: 12, spacing: 6 },
+};
 
 /** Estimated height of wrapped text, so the space we reserve matches what bpmn-js draws. */
 function textHeight(text: string, width: number, charW: number, lineH: number): number {
@@ -154,11 +165,14 @@ export function layoutGraph(g: A4Graph): Layout {
   const cellNode = new Map(nodes.map((n) => [`${col(n.id)}|${row(n.id)}`, n.id]));
 
   // ---- routing, in grid units: column c at x = c, gap k at k + 0.5, row r at y = r, gutter r at r + 0.5 ----
-  type Run = { line: "row" | "col"; at: number; from: number; to: number; source: string; target: string };
+  type LineRun = { line: "row" | "col"; at: number; from: number; to: number; first: boolean; last: boolean };
+  type Run = LineRun & { edge: string; source: string; target: string };
   const runs: Run[] = []; // straight runs along a row or column line already taken by an edge
   const routes = new Map<string, Route>();
   const tracks = new Map<string, string[]>(); // channel → edge IDs, one track each
   const ports = new Map<string, Set<Route["exit"]>>();
+  // Per gap: pairs [a, b] meaning a's track must lie left of b's (see junctionOrder).
+  const trackOrder = new Map<string, [string, string][]>();
 
   const gridPath = (e: GEdge, r: Route): Pt[] | null => {
     const pts: Pt[] = [[col(e.source_id), row(e.source_id)]];
@@ -187,7 +201,6 @@ export function layoutGraph(g: A4Graph): Layout {
     return pts;
   };
 
-  type LineRun = Omit<Run, "source" | "target"> & { first: boolean; last: boolean };
   const lineRuns = (pts: Pt[]): LineRun[] =>
     pts.slice(1).flatMap(([x2, y2], i): LineRun[] => {
       const [x1, y1] = pts[i];
@@ -197,32 +210,84 @@ export function layoutGraph(g: A4Graph): Layout {
       return []; // inside a gap or gutter
     });
 
-  const blocked = (e: GEdge, pts: Pt[]) => {
+  // The shapes a run is attached to: the source for a route's first run, the target for its last.
+  // Runs attached to the same shape get separate ports, so they never lie on the same line.
+  const attached = (r: { first: boolean; last: boolean; source: string; target: string }) =>
+    [r.first ? r.source : null, r.last ? r.target : null].filter((id): id is string => id !== null);
+
+  // A row run that ends at a gap turns into that gap's channel. Where one edge turns into gap k from
+  // the left on a row and another turns out of gap k to the right on the same row, the first must take
+  // the track further left, or the two stubs would overlap between their tracks.
+  const junctionOrder = (e: GEdge, mine: LineRun[]): [string, string, string][] => {
+    const out: [string, string, string][] = [];
+    for (const run of mine.filter((r) => r.line === "row")) {
+      for (const o of runs.filter((x) => x.line === "row" && x.at === run.at && x.edge !== e.id)) {
+        if (!Number.isInteger(run.to) && o.from === run.to) out.push([channelKey(gap(run.to - 0.5)), e.id, o.edge]);
+        if (!Number.isInteger(run.from) && o.to === run.from) out.push([channelKey(gap(run.from - 0.5)), o.edge, e.id]);
+      }
+    }
+    return out;
+  };
+  // Whether the pairs so far already put a's track left of b's (directly or through others).
+  const precedes = (pairs: [string, string][], a: string, b: string): boolean => {
+    const seen = new Set<string>();
+    const stack = [a];
+    while (stack.length) {
+      const x = stack.pop()!;
+      if (x === b) return true;
+      if (seen.has(x)) continue;
+      seen.add(x);
+      for (const [p, q] of pairs) if (p === x) stack.push(q);
+    }
+    return false;
+  };
+
+  /** Null when the route is blocked; otherwise the track-order pairs it adds. */
+  const check = (e: GEdge, pts: Pt[]): [string, string, string][] | null => {
     const [s, t] = [pts[0], pts.at(-1)!];
-    for (const run of lineRuns(pts)) {
+    const mine = lineRuns(pts);
+    for (const run of mine) {
       for (let k = Math.ceil(run.from); k <= Math.floor(run.to); k++) {
         const cell: Pt = run.line === "row" ? [k, run.at] : [run.at, k];
         const own = (run.first && cell[0] === s[0] && cell[1] === s[1]) || (run.last && cell[0] === t[0] && cell[1] === t[1]);
-        if (!own && cellNode.has(`${cell[0]}|${cell[1]}`)) return true;
+        if (!own && cellNode.has(`${cell[0]}|${cell[1]}`)) return null;
       }
-      // Sharing a line is fine for a fork (same source) or a merge (same target), never otherwise.
+      // Two edges may only share a stretch of line when both are attached to the same shape there
+      // (each then leaves or enters through its own port); any other overlap is a clash.
+      const ends = attached({ ...run, source: e.source_id, target: e.target_id });
       const clash = runs.some(
-        (o) => o.line === run.line && o.at === run.at && run.from < o.to && o.from < run.to && o.source !== e.source_id && o.target !== e.target_id,
+        (o) =>
+          o.line === run.line && o.at === run.at && run.from < o.to && o.from < run.to && !attached(o).some((id) => ends.includes(id)),
       );
-      if (clash) return true;
+      if (clash) return null;
     }
-    return false;
+    // Track order inside a gap must stay acyclic, or some pair of stubs would have to overlap.
+    const added = junctionOrder(e, mine);
+    const pairs = new Map([...trackOrder].map(([k, v]) => [k, [...v]]));
+    for (const [ch, a, b] of added) {
+      const list = pairs.get(ch) ?? [];
+      if (precedes(list, b, a)) return null;
+      list.push([a, b]);
+      pairs.set(ch, list);
+    }
+    return added;
+  };
+
+  const accept = (e: GEdge, r: Route, pts: Pt[], order: [string, string, string][]) => {
+    routes.set(e.id, r);
+    ports.set(e.source_id, new Set([...(ports.get(e.source_id) ?? []), r.exit]));
+    for (const run of lineRuns(pts)) runs.push({ ...run, edge: e.id, source: e.source_id, target: e.target_id });
+    for (const ch of r.via) tracks.set(channelKey(ch), [...(tracks.get(channelKey(ch)) ?? []), e.id]);
+    for (const [ch, a, b] of order) trackOrder.set(ch, [...(trackOrder.get(ch) ?? []), [a, b]]);
   };
 
   const tryRoutes = (e: GEdge, options: Route[], onePerGatewayPort: boolean) => {
     for (const r of options) {
       if (onePerGatewayPort && isGateway(e.source_id) && ports.get(e.source_id)?.has(r.exit)) continue;
       const pts = gridPath(e, r);
-      if (!pts || blocked(e, pts)) continue;
-      routes.set(e.id, r);
-      ports.set(e.source_id, new Set([...(ports.get(e.source_id) ?? []), r.exit]));
-      for (const run of lineRuns(pts)) runs.push({ ...run, source: e.source_id, target: e.target_id });
-      for (const ch of r.via) tracks.set(channelKey(ch), [...(tracks.get(channelKey(ch)) ?? []), e.id]);
+      const order = pts && check(e, pts);
+      if (!pts || !order) continue;
+      accept(e, r, pts, order);
       return true;
     }
     return false;
@@ -241,8 +306,17 @@ export function layoutGraph(g: A4Graph): Layout {
     }
     out.push({ exit: "bottom", via: [gutter(r1)], entry: "bottom" }); // under the row, back up into the target
     out.push({ exit: "right", via: [gap(a), gutter(r2)], entry: "bottom" });
-    out.push({ exit: "bottom", via: [gutter(r1), gap(a), gutter(r2)], entry: "bottom" });
+    if (r1 !== r2) out.push(safeRoute(e));
     return out;
+  };
+  // Down into the gutter under the source, across to the gap after it, along the target's gutter and
+  // up into the target's bottom. Apart from the two stubs at its own shapes it only uses tracks of
+  // its own, so nothing can block it: the last resort for every edge.
+  const safeRoute = (e: GEdge): Route => {
+    const [r1, r2] = [row(e.source_id), row(e.target_id)];
+    return r1 === r2
+      ? { exit: "bottom", via: [gutter(r1)], entry: "bottom" }
+      : { exit: "bottom", via: [gutter(r1), gap(col(e.source_id)), gutter(r2)], entry: "bottom" };
   };
 
   // Straight lines first so the main path stays straight, then everything else left to right.
@@ -250,12 +324,65 @@ export function layoutGraph(g: A4Graph): Layout {
   const rest = flow.filter((e) => !routes.has(e.id)).sort((x, y) => col(x.source_id) - col(y.source_id));
   for (const e of rest) {
     if (tryRoutes(e, options(e), true) || tryRoutes(e, options(e), false)) continue;
-    const fallback: Route = { exit: "right", via: [gap(col(e.source_id)), gutter(row(e.target_id))], entry: "bottom" };
-    routes.set(e.id, fallback);
-    for (const ch of fallback.via) tracks.set(channelKey(ch), [...(tracks.get(channelKey(ch)) ?? []), e.id]);
+    const r = safeRoute(e);
+    accept(e, r, gridPath(e, r)!, []);
+  }
+
+  // Order each gap's tracks so every "left of" pair holds; otherwise keep the order edges arrived in.
+  for (const [ch, pairs] of trackOrder) {
+    const list = tracks.get(ch)!;
+    const before = new Map(list.map((id) => [id, 0]));
+    for (const [, b] of pairs) before.set(b, before.get(b)! + 1);
+    const sorted: string[] = [];
+    while (sorted.length < list.length) {
+      const next = list.find((id) => !sorted.includes(id) && before.get(id) === 0)!;
+      sorted.push(next);
+      for (const [a, b] of pairs) if (a === next) before.set(b, before.get(b)! - 1);
+    }
+    tracks.set(ch, sorted);
   }
   const trackCount = (c: Channel) => tracks.get(channelKey(c))?.length ?? 0;
   const trackIndex = (c: Channel, id: string) => tracks.get(channelKey(c))!.indexOf(id);
+
+  // ---- ports: every edge gets its own point on each side of a shape it uses ----
+  // Edges on one side are ordered by where they head (or come from), so neighbours do not cross at
+  // the shape, then spread along the side. A straight edge keeps the middle on both its shapes so it
+  // stays straight. Offsets are along the side: down for left/right, right for the bottom.
+  type Side = "right" | "left" | "bottom";
+  type PortUse = { id: string; end: "exit" | "entry"; key: number; straight: boolean };
+  const sideUsers = new Map<string, PortUse[]>();
+  const use = (node: string, side: Side, u: PortUse) => sideUsers.set(`${node}|${side}`, [...(sideUsers.get(`${node}|${side}`) ?? []), u]);
+  for (const e of flow) {
+    const r = routes.get(e.id)!;
+    const straightEdge = r.exit === "right" && !r.via.length && r.entry === "left";
+    const next = r.via[1]; // for a bottom exit: the channel after its gutter
+    const exitKey =
+      r.exit === "right"
+        ? row(e.target_id) + col(e.target_id) / 1000
+        : r.via.length === 0
+          ? col(e.source_id)
+          : next
+            ? (next.kind === "gap" ? next.index + 0.5 : col(e.source_id))
+            : col(e.target_id);
+    const prev = r.via.at(-2); // for a bottom entry: the channel before its gutter
+    const entryKey =
+      r.entry === "left" ? row(e.source_id) + col(e.source_id) / 1000 : prev ? (prev.kind === "gap" ? prev.index + 0.5 : col(e.target_id)) : col(e.source_id);
+    use(e.source_id, r.exit, { id: e.id, end: "exit", key: exitKey, straight: straightEdge });
+    use(e.target_id, r.entry, { id: e.id, end: "entry", key: entryKey, straight: straightEdge });
+  }
+  const portOffset = new Map<string, number>(); // `${edge}|exit` or `${edge}|entry` → offset
+  for (const [k, users] of sideUsers) {
+    const [node, side] = k.split("|") as [string, Side];
+    const limits = PORT[byId.get(node)!.type];
+    const limit = side === "bottom" ? limits.bottom : limits.side;
+    users.sort((a, b) => a.key - b.key || Number(b.straight) - Number(a.straight));
+    const straightAt = users.findIndex((u) => u.straight);
+    const centre = straightAt >= 0 ? straightAt : (users.length - 1) / 2;
+    const reach = Math.max(1, ...users.map((_, i) => Math.abs(i - centre)));
+    const spacing = Math.min(limits.spacing, limit / reach);
+    users.forEach((u, i) => portOffset.set(`${u.id}|${u.end}`, (i - centre) * spacing));
+  }
+  const offsetOf = (id: string, end: "exit" | "entry") => portOffset.get(`${id}|${end}`) ?? 0;
 
   // ---- reserve space for labels ----
   const exitOffset = (n: GNode) => (n.type === "exclusive_gateway" ? 24 : 6); // clear of the gateway's own name
@@ -268,9 +395,10 @@ export function layoutGraph(g: A4Graph): Layout {
     if (n.type === "exclusive_gateway") grow(rowTop, row(n.id), labelHeight(n.label) + 6 - (CELL_H - h) / 2);
     if (n.type === "start" || n.type === "end") grow(gutterLabel, row(n.id), h / 2 + 4 + labelHeight(n.label) - CELL_H / 2);
   }
-  // Branches that leave by the same side share a trunk, so labels at the exit would stack on each
-  // other over a line they all use. Label those where they enter their target instead, in a zone at
-  // the right of the gap before it (past the tracks), where the line belongs to that branch alone.
+  // Branches that leave by the same side have ports only a few pixels apart, so labels at the exit
+  // would stack on each other. Label those where they enter their target instead, in a zone at the
+  // right of the gap before it (past the tracks), where the line belongs to that branch alone.
+  // Labels sit above their port, so a port above the middle needs that much more room overhead.
   const exitKey = (e: GEdge) => `${e.source_id}|${routes.get(e.id)!.exit}`;
   const exitCount = new Map<string, number>();
   for (const e of flow) exitCount.set(exitKey(e), (exitCount.get(exitKey(e)) ?? 0) + 1);
@@ -282,7 +410,7 @@ export function layoutGraph(g: A4Graph): Layout {
     atEntry.add(e.id);
     entryTargets.add(e.target_id);
     entryGaps.add(col(e.target_id) - 1);
-    grow(rowTop, row(e.target_id), labelHeight(e.label) + 4 - CELL_H / 2);
+    grow(rowTop, row(e.target_id), labelHeight(e.label) + 4 - offsetOf(e.id, "entry") - CELL_H / 2);
   }
   for (const e of flow) {
     if (!e.label?.trim() || atEntry.has(e.id)) continue;
@@ -291,7 +419,7 @@ export function layoutGraph(g: A4Graph): Layout {
     const lh = labelHeight(e.label);
     const c = col(n.id);
     if (routes.get(e.id)!.exit === "right") {
-      grow(rowTop, row(n.id), lh + 4 - CELL_H / 2);
+      grow(rowTop, row(n.id), lh + 4 - offsetOf(e.id, "exit") - CELL_H / 2);
       gapLabel.set(c, Math.max(gapLabel.get(c) ?? 0, w / 2 + exitOffset(n) + LABEL_W + 8 - CELL_W / 2));
     } else {
       grow(gutterLabel, row(n.id), h / 2 + 4 + lh - CELL_H / 2);
@@ -373,6 +501,15 @@ export function layoutGraph(g: A4Graph): Layout {
     if (n.type === "start" || n.type === "end") nodeLabels.set(n.id, { x: cx - LABEL_W / 2, y: cy + h / 2 + 4, w: LABEL_W, h: lh });
   }
   const mid = (b: Box): Pt => [b.x + b.w / 2, b.y + b.h / 2];
+  // A port: the point `offset` along a side of the shape, on its outline (diamond edges run at 45°,
+  // events are circles), so lines start and end on the shape rather than inside or short of it.
+  const portPoint = (n: GNode, b: Box, side: Side, offset: number): Pt => {
+    const [cx, cy] = mid(b);
+    const inset = n.type === "task" ? 0 : n.type === "exclusive_gateway" ? Math.abs(offset) : b.w / 2 - Math.sqrt(Math.max(0, (b.w / 2) ** 2 - offset ** 2));
+    if (side === "right") return [b.x + b.w - inset, cy + offset];
+    if (side === "left") return [b.x + inset, cy + offset];
+    return [cx + offset, b.y + b.h - inset];
+  };
 
   // ---- edges ----
   const edgePts = new Map<string, Pt[]>();
@@ -381,14 +518,17 @@ export function layoutGraph(g: A4Graph): Layout {
     const s = boxes.get(e.source_id)!;
     const t = boxes.get(e.target_id)!;
     const [scx, scy] = mid(s);
-    const [tcx, tcy] = mid(t);
     const r = routes.get(e.id);
     let pts: Pt[];
+    let exitPt: Pt = [s.x + s.w, scy];
+    let entryPt: Pt = [t.x, mid(t)[1]];
     if (!r) {
       // Self loop: out of the right side, round underneath, back into the bottom.
       pts = [[s.x + s.w, scy], [s.x + s.w + 20, scy], [s.x + s.w + 20, s.y + s.h + 20], [scx, s.y + s.h + 20], [scx, s.y + s.h]];
     } else {
-      pts = [r.exit === "right" ? [s.x + s.w, scy] : [scx, s.y + s.h]];
+      exitPt = portPoint(byId.get(e.source_id)!, s, r.exit, offsetOf(e.id, "exit"));
+      entryPt = portPoint(byId.get(e.target_id)!, t, r.entry, offsetOf(e.id, "entry"));
+      pts = [exitPt];
       let horizontal = r.exit === "right";
       for (const ch of r.via) {
         const [px, py] = pts.at(-1)!;
@@ -397,12 +537,15 @@ export function layoutGraph(g: A4Graph): Layout {
       }
       const [px, py] = pts.at(-1)!;
       if (r.entry === "left") {
-        if (!horizontal) pts.push([px, tcy]);
-        pts.push([t.x, tcy]);
+        if (!horizontal) pts.push([px, entryPt[1]]);
+        else if (py !== entryPt[1]) {
+          // A straight edge whose ends did not both get the middle port: step across halfway.
+          const half = (px + entryPt[0]) / 2;
+          pts.push([half, py], [half, entryPt[1]]);
+        }
+        pts.push(entryPt);
       } else {
-        // Into the bottom; tasks take it left of centre so it can't meet the task's own bottom exit.
-        const ex = byId.get(e.target_id)!.type === "task" ? tcx - 20 : tcx;
-        pts.push([ex, py], [ex, t.y + t.h]);
+        pts.push([entryPt[0], py], entryPt);
       }
     }
     edgePts.set(e.id, pts.filter((p, i) => i === 0 || p[0] !== pts[i - 1][0] || p[1] !== pts[i - 1][1]));
@@ -413,10 +556,10 @@ export function layoutGraph(g: A4Graph): Layout {
       edgeLabels.set(
         e.id,
         atEntry.has(e.id)
-          ? { x: colX[col(e.target_id)] - 4 - LABEL_W, y: tcy - 4 - lh, w: LABEL_W, h: lh }
+          ? { x: colX[col(e.target_id)] - 4 - LABEL_W, y: entryPt[1] - 4 - lh, w: LABEL_W, h: lh }
           : !r || r.exit === "right"
-          ? { x: s.x + s.w + exitOffset(n), y: scy - 4 - lh, w: LABEL_W, h: lh }
-          : { x: scx + 6, y: s.y + s.h + 4, w: LABEL_W, h: lh },
+          ? { x: s.x + s.w + exitOffset(n), y: exitPt[1] - 4 - lh, w: LABEL_W, h: lh }
+          : { x: exitPt[0] + 6, y: s.y + s.h + 4, w: LABEL_W, h: lh },
       );
     }
   }

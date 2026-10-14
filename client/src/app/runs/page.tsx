@@ -43,12 +43,13 @@ const FILTERS: { label: string; match: (s: JobStatus) => boolean }[] = [
 
 function IssueCounts({ issues }: { issues: RunSummary["issues"] }) {
   if (!issues) return <span className="text-ink-3">–</span>;
-  if (!issues.blocking && !issues.review && !issues.info) return <span className="text-ink-3">None</span>;
+  if (!issues.blocking && !issues.review && !issues.info && !issues.resolved) return <span className="text-ink-3">None</span>;
   return (
     <div className="flex flex-wrap gap-1">
       {issues.blocking > 0 && <Badge className={PILL.red}>{issues.blocking} blocking</Badge>}
       {issues.review > 0 && <Badge className={PILL.amber}>{issues.review} review</Badge>}
       {issues.info > 0 && <Badge className={PILL.grey}>{issues.info} info</Badge>}
+      {!!issues.resolved && <Badge className={PILL.green}>✓ {issues.resolved} complete</Badge>}
     </div>
   );
 }

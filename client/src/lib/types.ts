@@ -98,6 +98,8 @@ export type JobView = {
   archived: boolean;
   pending: ChatHandoff | null;
   error: JobError | null;
+  /** Issues a reviewer marked complete: index into result.issues → when. Missing on older runs. */
+  resolved?: Record<string, string>;
   progress: {
     /** Graph nodes queued next (the running, interrupted or failed one), e.g. ["a3_refine"]. */
     next: string[];
@@ -134,7 +136,8 @@ export type RunSummary = {
   provider: Provider;
   createdAt: string;
   updatedAt: string;
-  issues: { blocking: number; review: number; info: number } | null;
+  /** Open issues per severity; resolved = marked complete (missing on older servers). */
+  issues: { blocking: number; review: number; info: number; resolved?: number } | null;
   hasBpmn: boolean;
   draft?: boolean;
   archived: boolean;
