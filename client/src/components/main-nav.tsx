@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/", label: "New diagram", match: (p: string) => p === "/" },
   // A job page is reached from the run history, so it highlights Previous runs.
   { href: "/runs", label: "Previous runs", match: (p: string) => p.startsWith("/runs") || p.startsWith("/jobs") },
+  { href: "/issues", label: "Issue guide", match: (p: string) => p.startsWith("/issues") },
 ];
 
 function NavLinks({ pathname }: { pathname: string | null }) {

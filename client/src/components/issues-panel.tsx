@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, CrosshairIcon, RotateCcwIcon } from "lucide-react";
+import { BookOpenIcon, CheckIcon, CrosshairIcon, RotateCcwIcon } from "lucide-react";
 import { PILL } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { IssueTarget } from "@/lib/diagram";
+import { guideFor } from "@/lib/issue-guide";
 import type { A4Graph, EvidenceView, Issue, Severity } from "@/lib/types";
 
 const SEVERITY: Record<Severity, { label: string; pill: string }> = {
@@ -223,7 +224,20 @@ export function IssuesPanel({
                   <span>{issue.element_ids.length ? "Not on the diagram (from an earlier step)" : "Applies to the whole diagram"}</span>
                 )}
               </div>
-              <div className="mt-0.5 flex justify-end">
+              <div className="mt-0.5 flex items-center justify-end gap-1">
+                {/* New tab, so edits on this page are not lost. */}
+                {guideFor(issue.code) && (
+                  <a
+                    href={`/issues#${guideFor(issue.code)!.code}`}
+                    target="_blank"
+                    rel="noopener"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mr-auto flex items-center gap-1 text-xs text-ink-3 hover:text-brand"
+                  >
+                    <BookOpenIcon className="size-3" />
+                    How to fix
+                  </a>
+                )}
                 <Button
                   variant={done ? "ghost" : "outline"}
                   size="sm"
